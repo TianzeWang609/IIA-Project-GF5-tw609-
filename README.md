@@ -1,7 +1,6 @@
 # GF5: Animating 3D Characters
 
-**Students:** Start from the
-[GF5 project page](https://cambridgecvcourses.github.io/IIA-Project-GF5/).
+[![Project Page](https://img.shields.io/badge/Project%20Page-GitHub%20Pages-0969da)](https://cambridgecvcourses.github.io/IIA-Project-GF5/)
 
 This repository contains the teaching assets and student handouts for an
 undergraduate project on 3D character animation.
@@ -21,22 +20,15 @@ code and assets. The project is organised into three parts:
 - [Interim Report](docs/interim.md)
 - [Part 3: Coming Soon](docs/part3_placeholder.md)
 
-For the Parts 1 and 2 student release, start from the
-[published GitHub Pages site](https://cambridgecvcourses.github.io/IIA-Project-GF5/).
-To build the site locally, run:
+The published project page is the main student-facing version of the Parts 1
+and 2 handouts. The website is generated from the Markdown files in `docs/`.
+To preview local changes, run:
 
 ```bash
 python docs/build_site.py
 ```
 
 Then open `site/index.html`.
-
-The website is generated from the Markdown handouts. After editing Markdown in
-`docs/`, regenerate the local HTML preview with:
-
-```bash
-python docs/build_site.py
-```
 
 On GitHub, `.github/workflows/build-docs-site.yml` publishes generated HTML to
 the `gh-pages` branch. Configure GitHub Pages to deploy from the `gh-pages`
