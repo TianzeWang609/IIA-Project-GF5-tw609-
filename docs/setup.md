@@ -1,15 +1,25 @@
 # Setup and Viewer Guide
 
-The project uses a local Python viewer for skeleton inspection, pose editing,
-skinning-weight visualisation, and video export.
+This is the canonical student setup guide for running the GF5 viewer.
 
 ## Create The Environment
 
-From the repository root, create and activate the course environment once:
+From the repository root, create the course environment once:
 
 ```bash
 mamba env create -f env.yml
+```
+
+Then activate it whenever you work on the project:
+
+```bash
 mamba activate gf5
+```
+
+If the environment already exists and the project has been updated, refresh it:
+
+```bash
+mamba env update -f env.yml --prune
 ```
 
 ## Run The Viewer
@@ -19,6 +29,8 @@ Start the local viewer from the repository root:
 ```bash
 python viewer/asset_viewer.py
 ```
+
+This opens the viewer page in your browser automatically.
 
 If the default port is already in use, choose another port:
 
@@ -32,7 +44,8 @@ For a remote or headless session, suppress automatic browser opening:
 python viewer/asset_viewer.py --no-open-browser
 ```
 
-Then open the printed `localhost` URL in a browser.
+Then open the printed `localhost` URL in a browser or forward the printed port
+from the remote machine.
 
 ## Files You Will Edit
 
@@ -48,7 +61,7 @@ For Part 2, implement one-hot and LBS skinning in:
 viewer/student_submission/part2_skinning.py
 ```
 
-You will also use these files to understand how data flows through the viewer:
+Useful viewer files to read when following data flow:
 
 - `viewer/asset_viewer.py`
 - `viewer/motion_sequences.py`
@@ -65,6 +78,16 @@ You will also use these files to understand how data flows through the viewer:
 - `Timeline`: capture keyframes for the custom Part 1 motion.
 - `Export Motion Video`: render evidence videos for the interim submission.
 
+## Local Files And Outputs
+
+The viewer may create local working folders while you experiment:
+
+- `libraries/`: poses and motions saved from the viewer
+- `exports/`: rendered videos
+- `.viewer_imports/`: uploaded character packages
+
+These folders are local outputs, not files you need to submit as source code.
+
 ## SMPL Model Files
 
 SMPL model files are not included in the repository. If you have access to
@@ -79,6 +102,15 @@ or start the viewer with an explicit model path:
 ```bash
 python viewer/asset_viewer.py --smpl-model /path/to/smpl/model.pkl
 ```
+
+## Troubleshooting
+
+Run viewer commands from the repository root, the directory containing
+`env.yml` and `viewer/`. Running the command from the wrong directory is the
+most common cause of `viewer/asset_viewer.py` not being found.
+
+If video export fails, check that `ffmpeg` is installed and available on
+`PATH`.
 
 ## Next Step
 

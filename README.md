@@ -22,30 +22,17 @@ The project is organised into three parts:
 
 ## Running the Viewer
 
-You will need to run the viewer locally. Create the Python environment from the shipped environment file:
+Use [docs/setup.md](docs/setup.md) as the source of truth for creating the
+`gf5` environment, starting the viewer, remote/headless sessions, SMPL model
+files, and local output folders.
 
-```bash
-mamba env create -f env.yml
-mamba activate gf5
-```
-
-From the repository root:
-
-```bash
-python viewer/asset_viewer.py
-```
-
-This opens the viewer page in your browser automatically.
-To use a different port, for example when another viewer is already running:
-
-```bash
-python viewer/asset_viewer.py --port 8090
-```
+In short: create the environment from `env.yml`, activate `gf5`, and run
+`python viewer/asset_viewer.py` from the repository root.
 
 ## Repository Layout
 
 - `docs/`: handout source documents
-- `viewer/`: the animation viewer and implementation stubs
+- `viewer/`: the animation viewer, scene tools, and implementation stubs
 - `assets/blocky/`: the block character assets
 - `assets/smpl/`: local SMPL model files, if installed
 - `libraries/`: local pose and motion libraries created in the viewer

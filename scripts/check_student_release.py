@@ -20,6 +20,7 @@ FORBIDDEN_PATHS = (
     "docs/__pycache__",
     "docs/part3.md",
     "docs/part3_notes.md",
+    "docs/staff_runbook.md",
     "docs/staff_release_workflow.md",
     "docs/session_handoff.md",
     "exports",
@@ -27,6 +28,8 @@ FORBIDDEN_PATHS = (
     "libraries",
     "nvdiffrast",
     "viewer/__pycache__",
+    "viewer/CONVENTIONS.md",
+    "viewer/COORDINATES_AND_ENV.md",
     "viewer/reference_impl",
     "viewer/scene_editor.py",
 )
