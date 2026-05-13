@@ -19,6 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT = ROOT.parent / "site"
 SITE_TITLE = "GF5: Animating 3D Characters"
+GITHUB_REPOSITORY_URL = "https://github.com/CambridgeCVCourses/IIA-Project-GF5"
 
 
 @dataclass(frozen=True)
@@ -280,10 +281,10 @@ def render_release_summary() -> str:
 
 def render_actions(page: Page) -> str:
     if page.output == "index.html":
-        return """          <div class="actions">
+        github_href = html.escape(GITHUB_REPOSITORY_URL, quote=True)
+        return f"""          <div class="actions">
             <a class="button primary" href="setup.html">Start setup</a>
-            <a class="button" href="part1.html">Open Part 1</a>
-            <a class="button" href="part2.html">Open Part 2</a>
+            <a class="button" href="{github_href}" target="_blank" rel="noreferrer">GitHub codebase</a>
           </div>
 """
     index = PAGES.index(page)
