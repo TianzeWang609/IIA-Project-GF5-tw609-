@@ -10,6 +10,95 @@ import numpy.typing as npt
 
 Vec3 = npt.NDArray[np.float64]
 
+SMPL24_PROXY_NAME = "SMPL-24 Proxy"
+SMPL24_JOINT_NAMES = (
+    "pelvis",
+    "left_hip",
+    "right_hip",
+    "spine1",
+    "left_knee",
+    "right_knee",
+    "spine2",
+    "left_ankle",
+    "right_ankle",
+    "spine3",
+    "left_foot",
+    "right_foot",
+    "neck",
+    "left_collar",
+    "right_collar",
+    "head",
+    "left_shoulder",
+    "right_shoulder",
+    "left_elbow",
+    "right_elbow",
+    "left_wrist",
+    "right_wrist",
+    "left_hand",
+    "right_hand",
+)
+SMPL24_PARENTS = (
+    -1,
+    0,
+    0,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    9,
+    9,
+    12,
+    13,
+    14,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+)
+
+# SMPL-X neutral template joints collapsed to the course SMPL-24 body profile and
+# rotated into GF5 viewer body space (+Z up, +Y forward, anatomical right +X).
+# The pelvis is centered in X/Y and the lowest foot joint is on the ground. This
+# baked snapshot lets the Part 3 proxy match the SMPL motion convention without
+# requiring licensed model files at student runtime.
+SMPL24_TEMPLATE_REST_JOINTS_VIEWER = np.asarray(
+    [
+        [0.0, 0.0, 0.935344],
+        [-0.058189, -0.026001, 0.842581],
+        [0.063267, -0.02125, 0.831436],
+        [0.002763, -0.027618, 1.045235],
+        [-0.112885, -0.035397, 0.463827],
+        [0.107477, -0.038074, 0.469056],
+        [-0.006685, -0.033558, 1.177088],
+        [-0.069431, -0.067273, 0.060768],
+        [0.092061, -0.058267, 0.058329],
+        [0.004645, -0.005111, 1.229323],
+        [-0.116689, 0.050943, 0.002771],
+        [0.130873, 0.060782, 0.0],
+        [0.01681, -0.036726, 1.39449],
+        [-0.041719, -0.012331, 1.314267],
+        [0.05234, -0.018511, 1.313662],
+        [-0.007974, -0.015989, 1.554942],
+        [-0.160958, -0.027792, 1.371995],
+        [0.154918, -0.031179, 1.367186],
+        [-0.415081, -0.070251, 1.299845],
+        [0.426068, -0.057646, 1.330694],
+        [-0.667067, -0.072723, 1.323066],
+        [0.675335, -0.072971, 1.326161],
+        [-0.753753, -0.078746, 1.311706],
+        [0.759999, -0.078746, 1.311706],
+    ],
+    dtype=np.float64,
+)
+
 
 def as_vec3(values: tuple[float, float, float] | list[float]) -> Vec3:
     return np.asarray(values, dtype=np.float64)
@@ -155,6 +244,35 @@ def add_joint_box(
     )
 
 
+def add_head_face_patches(
+    parts: list[dict[str, Any]],
+    *,
+    head_size: list[float],
+    head_center: list[float],
+    color: list[int],
+) -> None:
+    head_half_depth = head_size[1] / 2.0
+    patch_depth = 0.008
+    face_y = head_center[1] + head_half_depth + patch_depth / 2.0 + 0.002
+    for side, eye_x in (("left", -0.038), ("right", 0.038)):
+        add_joint_box(
+            parts,
+            f"{side}_eye_patch",
+            "head",
+            [head_center[0] + eye_x, face_y, head_center[2] + 0.026],
+            [0.026, patch_depth, 0.018],
+            color,
+        )
+    add_joint_box(
+        parts,
+        "nose_patch",
+        "head",
+        [head_center[0], face_y + 0.001, head_center[2] - 0.004],
+        [0.018, patch_depth * 1.2, 0.038],
+        color,
+    )
+
+
 def base_joint_spec(
     root_height: float,
     shoulder_span: float,
@@ -171,17 +289,17 @@ def base_joint_spec(
         {"name": "chest", "parent": 1, "translation": [0.0, 0.0, 0.18]},
         {"name": "neck", "parent": 2, "translation": [0.0, 0.0, 0.12]},
         {"name": "head", "parent": 3, "translation": [0.0, 0.0, 0.10]},
-        {"name": "left_shoulder", "parent": 2, "translation": [shoulder_span, 0.0, 0.05]},
-        {"name": "left_elbow", "parent": 5, "translation": [upper_arm, 0.0, 0.0]},
-        {"name": "left_wrist", "parent": 6, "translation": [forearm, 0.0, 0.0]},
-        {"name": "right_shoulder", "parent": 2, "translation": [-shoulder_span, 0.0, 0.05]},
-        {"name": "right_elbow", "parent": 8, "translation": [-upper_arm, 0.0, 0.0]},
-        {"name": "right_wrist", "parent": 9, "translation": [-forearm, 0.0, 0.0]},
-        {"name": "left_hip", "parent": 0, "translation": [hip_offset, 0.0, -0.06]},
+        {"name": "left_shoulder", "parent": 2, "translation": [-shoulder_span, 0.0, 0.05]},
+        {"name": "left_elbow", "parent": 5, "translation": [-upper_arm, 0.0, 0.0]},
+        {"name": "left_wrist", "parent": 6, "translation": [-forearm, 0.0, 0.0]},
+        {"name": "right_shoulder", "parent": 2, "translation": [shoulder_span, 0.0, 0.05]},
+        {"name": "right_elbow", "parent": 8, "translation": [upper_arm, 0.0, 0.0]},
+        {"name": "right_wrist", "parent": 9, "translation": [forearm, 0.0, 0.0]},
+        {"name": "left_hip", "parent": 0, "translation": [-hip_offset, 0.0, -0.06]},
         {"name": "left_knee", "parent": 11, "translation": [0.0, 0.0, -thigh]},
         {"name": "left_ankle", "parent": 12, "translation": [0.0, 0.0, -shin]},
         {"name": "left_toe", "parent": 13, "translation": [0.0, foot, 0.0]},
-        {"name": "right_hip", "parent": 0, "translation": [-hip_offset, 0.0, -0.06]},
+        {"name": "right_hip", "parent": 0, "translation": [hip_offset, 0.0, -0.06]},
         {"name": "right_knee", "parent": 15, "translation": [0.0, 0.0, -thigh]},
         {"name": "right_ankle", "parent": 16, "translation": [0.0, 0.0, -shin]},
         {"name": "right_toe", "parent": 17, "translation": [0.0, foot, 0.0]},
@@ -257,6 +375,7 @@ def build_rigid_asset(
         "display": {
             "up_axis": [0.0, 0.0, 1.0],
             "forward_axis": [0.0, 1.0, 0.0],
+            "anatomical_right_axis": [1.0, 0.0, 0.0],
         },
         "skeleton": {
             "joints": [
@@ -272,6 +391,128 @@ def build_rigid_asset(
                 [int(joint["parent"]), idx]
                 for idx, joint in enumerate(joints)
                 if int(joint["parent"]) >= 0
+            ],
+        },
+        "rigid_parts": parts,
+    }
+
+
+def smpl24_bone_size(parent_name: str, child_name: str) -> tuple[float, float]:
+    names = {parent_name, child_name}
+    if names & {"spine1", "spine2", "spine3", "neck"}:
+        return 0.055, 0.045
+    if names & {"left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle"}:
+        return 0.044, 0.04
+    if names & {"left_foot", "right_foot"}:
+        return 0.042, 0.035
+    if names & {"left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist"}:
+        return 0.034, 0.032
+    if names & {"left_hand", "right_hand"}:
+        return 0.03, 0.028
+    return 0.035, 0.032
+
+
+def smpl24_joint_box_size(joint_name: str) -> list[float]:
+    if joint_name == "pelvis":
+        return [0.14, 0.10, 0.11]
+    if joint_name in {"spine1", "spine2", "spine3"}:
+        return [0.10, 0.08, 0.08]
+    if joint_name == "head":
+        return [0.16, 0.14, 0.16]
+    if joint_name in {"left_foot", "right_foot"}:
+        return [0.10, 0.15, 0.055]
+    if joint_name in {"left_hand", "right_hand"}:
+        return [0.08, 0.05, 0.07]
+    if "shoulder" in joint_name or "elbow" in joint_name or "wrist" in joint_name:
+        return [0.052, 0.052, 0.052]
+    if "hip" in joint_name or "knee" in joint_name or "ankle" in joint_name:
+        return [0.058, 0.058, 0.058]
+    return [0.045, 0.045, 0.045]
+
+
+def build_smpl24_proxy_asset() -> dict[str, Any]:
+    rest_positions = SMPL24_TEMPLATE_REST_JOINTS_VIEWER
+    joints: list[dict[str, Any]] = []
+    for joint_index, joint_name in enumerate(SMPL24_JOINT_NAMES):
+        parent_index = SMPL24_PARENTS[joint_index]
+        rest_position = rest_positions[joint_index]
+        if parent_index < 0:
+            translation = rest_position
+        else:
+            translation = rest_position - rest_positions[parent_index]
+        joints.append(
+            {
+                "name": joint_name,
+                "parent": parent_index,
+                "translation": [round(float(v), 6) for v in translation],
+            }
+        )
+
+    body_color = [114, 180, 205]
+    joint_color = [45, 65, 85]
+    head_size = smpl24_joint_box_size("head")
+    parts: list[dict[str, Any]] = []
+    for child_index, parent_index in enumerate(SMPL24_PARENTS):
+        if parent_index < 0:
+            continue
+        parent_name = SMPL24_JOINT_NAMES[parent_index]
+        child_name = SMPL24_JOINT_NAMES[child_index]
+        width, depth = smpl24_bone_size(parent_name, child_name)
+        add_bone_part(
+            parts,
+            f"{parent_name}_to_{child_name}",
+            parent_name,
+            joints[child_index]["translation"],
+            width,
+            depth,
+            body_color,
+        )
+
+    for joint_name in SMPL24_JOINT_NAMES:
+        add_joint_box(
+            parts,
+            f"{joint_name}_joint",
+            joint_name,
+            [0.0, 0.0, 0.0],
+            smpl24_joint_box_size(joint_name),
+            joint_color,
+        )
+
+    add_head_face_patches(
+        parts,
+        head_size=head_size,
+        head_center=[0.0, 0.0, 0.0],
+        color=body_color,
+    )
+
+    return {
+        "asset_format": "gf5_rigid_character",
+        "asset_version": 2,
+        "name": SMPL24_PROXY_NAME,
+        "description": (
+            "Part 3 SMPL-24 blocky proxy generated from the SMPL-X neutral "
+            "template rest skeleton collapsed to the GF5 course body profile."
+        ),
+        "units": "meters",
+        "display": {
+            "up_axis": [0.0, 0.0, 1.0],
+            "forward_axis": [0.0, 1.0, 0.0],
+            "anatomical_right_axis": [1.0, 0.0, 0.0],
+        },
+        "skeleton": {
+            "joints": [
+                {
+                    "name": joint["name"],
+                    "parent": joint["parent"],
+                    "translation": joint["translation"],
+                    "rest_position": [round(float(v), 6) for v in rest_positions[idx]],
+                }
+                for idx, joint in enumerate(joints)
+            ],
+            "bone_edges": [
+                [int(parent_index), child_index]
+                for child_index, parent_index in enumerate(SMPL24_PARENTS)
+                if int(parent_index) >= 0
             ],
         },
         "rigid_parts": parts,
@@ -325,17 +566,25 @@ def main() -> None:
             "joint_size": 0.065,
         },
     )
+    smpl24_proxy = build_smpl24_proxy_asset()
 
     marigold_path = out_dir / "marigold.asset.json"
     azure_path = out_dir / "azure.asset.json"
+    smpl24_proxy_path = out_dir / "smpl24_proxy.asset.json"
     write_asset(marigold_path, marigold)
     write_asset(azure_path, azure)
+    write_asset(smpl24_proxy_path, smpl24_proxy)
 
-    print(f"Wrote {marigold_path.name} and {azure_path.name}")
+    print(f"Wrote {marigold_path.name}, {azure_path.name}, and {smpl24_proxy_path.name}")
     print(
         "Marigold asset:",
         f"{len(marigold['skeleton']['joints'])} joints,",
         f"{len(marigold['rigid_parts'])} rigid parts",
+    )
+    print(
+        "SMPL-24 proxy asset:",
+        f"{len(smpl24_proxy['skeleton']['joints'])} joints,",
+        f"{len(smpl24_proxy['rigid_parts'])} rigid parts",
     )
 
 

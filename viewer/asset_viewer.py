@@ -6,7 +6,6 @@ import io
 import json
 import math
 import os
-import pickle
 import re
 import shutil
 import stat
@@ -577,10 +576,10 @@ SMPL_24_PARENTS = (
     21,
 )
 
-SMPLX_FACE_JOINT_INDICES = (22, 23, 24)
-SMPLX_LEFT_HAND_JOINT_INDICES = tuple(range(25, 40))
-SMPLX_RIGHT_HAND_JOINT_INDICES = tuple(range(40, 55))
-SKINNING_CACHE_VERSION = 2
+PACKAGE_SKINNING_VERSION = 5
+PACKAGE_SKINNING_COORDINATE_SPACE = "up2you_smpl_native_y_up"
+PACKAGE_SKINNING_REST_POSE = "gf5_smpl24_template_neutral_bind_pose"
+PACKAGE_SKINNING_MOTION_POSE_SPACE = "gf5_course_body_24_absolute_local"
 MAX_AVATAR_ZIP_BYTES = 768 * 1024 * 1024
 MAX_AVATAR_EXTRACTED_BYTES = 1536 * 1024 * 1024
 
@@ -699,346 +698,15 @@ def parse_obj_mesh(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray | Non
     )
 
 
-def load_smplx_template_payload(smplx_model_path: Path) -> dict[str, Any]:
-    if not smplx_model_path.exists():
-        raise FileNotFoundError(f"SMPL-X template file not found: {smplx_model_path}")
-
-    if smplx_model_path.suffix.lower() == ".npz":
-        with np.load(smplx_model_path, allow_pickle=True) as data:
-            return {key: data[key] for key in data.files}
-
-    with smplx_model_path.open("rb") as handle:
-        return pickle.load(handle, encoding="latin1")
-
-
-def smplx_weights_to_smpl24(smplx_weights: np.ndarray) -> np.ndarray:
-    smplx_weights = np.asarray(smplx_weights, dtype=np.float32)
-    if smplx_weights.ndim != 2 or smplx_weights.shape[1] < 55:
-        raise ValueError(
-            "Expected SMPL-X skinning weights with at least 55 joint columns, "
-            f"got shape {smplx_weights.shape}."
-        )
-
-    weights = np.zeros((smplx_weights.shape[0], len(SMPL_24_PROFILE.joint_names)), dtype=np.float32)
-    weights[:, :22] = smplx_weights[:, :22]
-    weights[:, 15] += smplx_weights[:, SMPLX_FACE_JOINT_INDICES].sum(axis=1)
-    weights[:, 22] = smplx_weights[:, SMPLX_LEFT_HAND_JOINT_INDICES].sum(axis=1)
-    weights[:, 23] = smplx_weights[:, SMPLX_RIGHT_HAND_JOINT_INDICES].sum(axis=1)
-    row_sums = np.clip(weights.sum(axis=1, keepdims=True), 1e-8, None)
-    return (weights / row_sums).astype(np.float32)
-
-
-def smplx_joints_to_smpl24(smplx_joints: np.ndarray) -> np.ndarray:
-    smplx_joints = np.asarray(smplx_joints, dtype=np.float32)
-    if smplx_joints.shape[0] < 55:
-        raise ValueError(f"Expected at least 55 SMPL-X joints, got {smplx_joints.shape[0]}.")
-
-    joints = np.zeros((len(SMPL_24_PROFILE.joint_names), 3), dtype=np.float32)
-    joints[:22] = smplx_joints[:22]
-    joints[22] = smplx_joints[list(SMPLX_LEFT_HAND_JOINT_INDICES[::3])].mean(axis=0)
-    joints[23] = smplx_joints[list(SMPLX_RIGHT_HAND_JOINT_INDICES[::3])].mean(axis=0)
-    return joints
-
-
-def nearest_neighbor_indices(source_points: np.ndarray, target_points: np.ndarray) -> np.ndarray:
-    source_points = np.asarray(source_points, dtype=np.float32)
-    target_points = np.asarray(target_points, dtype=np.float32)
-    try:
-        from scipy.spatial import cKDTree
-
-        return cKDTree(source_points).query(target_points, k=1)[1].astype(np.int64)
-    except Exception:
-        nearest = np.empty(target_points.shape[0], dtype=np.int64)
-        chunk_size = max(256, min(4096, int(20_000_000 / max(1, source_points.shape[0]))))
-        source_norms = np.sum(source_points * source_points, axis=1)
-        for start in range(0, target_points.shape[0], chunk_size):
-            end = min(start + chunk_size, target_points.shape[0])
-            target_chunk = target_points[start:end]
-            distances = (
-                np.sum(target_chunk * target_chunk, axis=1, keepdims=True)
-                - 2.0 * target_chunk @ source_points.T
-                + source_norms[None, :]
-            )
-            nearest[start:end] = np.argmin(distances, axis=1)
-        return nearest
-
-
-def normalized_vectors(vectors: np.ndarray) -> np.ndarray:
-    vectors = np.asarray(vectors, dtype=np.float32)
-    lengths = np.linalg.norm(vectors, axis=1, keepdims=True)
-    return vectors / np.clip(lengths, 1e-8, None)
-
-
-def compute_vertex_normals(vertices: np.ndarray, faces: np.ndarray) -> np.ndarray:
-    vertices = np.asarray(vertices, dtype=np.float32)
-    faces = np.asarray(faces, dtype=np.int64)
-    normals = np.zeros_like(vertices, dtype=np.float32)
-    triangles = vertices[faces]
-    face_normals = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
-    face_normals = normalized_vectors(face_normals)
-    for corner in range(3):
-        np.add.at(normals, faces[:, corner], face_normals)
-    return normalized_vectors(normals)
-
-
-def build_vertex_face_adjacency(vertex_count: int, faces: np.ndarray) -> list[np.ndarray]:
-    buckets: list[list[int]] = [[] for _ in range(vertex_count)]
-    for face_index, face in enumerate(np.asarray(faces, dtype=np.int64)):
-        for vertex_index in face:
-            buckets[int(vertex_index)].append(face_index)
-    return [np.asarray(bucket, dtype=np.int64) for bucket in buckets]
-
-
-def closest_point_on_triangle(point: np.ndarray, triangle: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    a, b, c = triangle
-    ab = b - a
-    ac = c - a
-    ap = point - a
-    d1 = float(np.dot(ab, ap))
-    d2 = float(np.dot(ac, ap))
-    if d1 <= 0.0 and d2 <= 0.0:
-        return a, np.asarray([1.0, 0.0, 0.0], dtype=np.float32)
-
-    bp = point - b
-    d3 = float(np.dot(ab, bp))
-    d4 = float(np.dot(ac, bp))
-    if d3 >= 0.0 and d4 <= d3:
-        return b, np.asarray([0.0, 1.0, 0.0], dtype=np.float32)
-
-    vc = d1 * d4 - d3 * d2
-    if vc <= 0.0 and d1 >= 0.0 and d3 <= 0.0:
-        v = d1 / (d1 - d3)
-        return a + v * ab, np.asarray([1.0 - v, v, 0.0], dtype=np.float32)
-
-    cp = point - c
-    d5 = float(np.dot(ab, cp))
-    d6 = float(np.dot(ac, cp))
-    if d6 >= 0.0 and d5 <= d6:
-        return c, np.asarray([0.0, 0.0, 1.0], dtype=np.float32)
-
-    vb = d5 * d2 - d1 * d6
-    if vb <= 0.0 and d2 >= 0.0 and d6 <= 0.0:
-        w = d2 / (d2 - d6)
-        return a + w * ac, np.asarray([1.0 - w, 0.0, w], dtype=np.float32)
-
-    va = d3 * d6 - d5 * d4
-    if va <= 0.0 and (d4 - d3) >= 0.0 and (d5 - d6) >= 0.0:
-        w = (d4 - d3) / ((d4 - d3) + (d5 - d6))
-        return b + w * (c - b), np.asarray([0.0, 1.0 - w, w], dtype=np.float32)
-
-    denom = 1.0 / (va + vb + vc)
-    v = vb * denom
-    w = vc * denom
-    return a + ab * v + ac * w, np.asarray([1.0 - v - w, v, w], dtype=np.float32)
-
-
-def closest_surface_weight_transfer(
-    source_vertices: np.ndarray,
-    source_faces: np.ndarray,
-    source_weights: np.ndarray,
-    target_vertices: np.ndarray,
-    target_faces: np.ndarray,
-    *,
-    distance_threshold_ratio: float = 0.05,
-    angle_threshold_degrees: float = 30.0,
-) -> tuple[np.ndarray, np.ndarray]:
-    source_vertices = np.asarray(source_vertices, dtype=np.float32)
-    source_faces = np.asarray(source_faces, dtype=np.int64)
-    target_vertices = np.asarray(target_vertices, dtype=np.float32)
-    target_faces = np.asarray(target_faces, dtype=np.int64)
-    source_weights = np.asarray(source_weights, dtype=np.float32)
-
-    source_normals = compute_vertex_normals(source_vertices, source_faces)
-    target_normals = compute_vertex_normals(target_vertices, target_faces)
-    source_vertex_faces = build_vertex_face_adjacency(source_vertices.shape[0], source_faces)
-    nearest_source_vertex = nearest_neighbor_indices(source_vertices, target_vertices)
-
-    transferred = np.zeros((target_vertices.shape[0], source_weights.shape[1]), dtype=np.float32)
-    matched = np.zeros(target_vertices.shape[0], dtype=bool)
-    bbox_diagonal = float(np.linalg.norm(target_vertices.max(axis=0) - target_vertices.min(axis=0)))
-    distance_threshold_sq = (distance_threshold_ratio * bbox_diagonal) ** 2
-    cos_angle_threshold = math.cos(math.radians(angle_threshold_degrees))
-
-    for target_index, source_vertex_index in enumerate(nearest_source_vertex):
-        candidate_faces = source_vertex_faces[int(source_vertex_index)]
-        if candidate_faces.size == 0:
-            transferred[target_index] = source_weights[int(source_vertex_index)]
-            continue
-
-        point = target_vertices[target_index]
-        best_distance_sq = float("inf")
-        best_face: np.ndarray | None = None
-        best_barycentric: np.ndarray | None = None
-        for face_index in candidate_faces:
-            face = source_faces[int(face_index)]
-            closest_point, barycentric = closest_point_on_triangle(point, source_vertices[face])
-            distance_sq = float(np.sum((point - closest_point) ** 2))
-            if distance_sq < best_distance_sq:
-                best_distance_sq = distance_sq
-                best_face = face
-                best_barycentric = barycentric
-
-        if best_face is None or best_barycentric is None:
-            transferred[target_index] = source_weights[int(source_vertex_index)]
-            continue
-
-        transferred[target_index] = (
-            source_weights[best_face[0]] * best_barycentric[0]
-            + source_weights[best_face[1]] * best_barycentric[1]
-            + source_weights[best_face[2]] * best_barycentric[2]
-        )
-        source_normal = (
-            source_normals[best_face[0]] * best_barycentric[0]
-            + source_normals[best_face[1]] * best_barycentric[1]
-            + source_normals[best_face[2]] * best_barycentric[2]
-        )
-        source_normal = source_normal / max(float(np.linalg.norm(source_normal)), 1e-8)
-        target_normal = target_normals[target_index]
-        normal_alignment = float(np.dot(source_normal, target_normal))
-        matched[target_index] = (
-            best_distance_sq <= distance_threshold_sq
-            and normal_alignment >= cos_angle_threshold
-        )
-
-    return matched, transferred
-
-
-def mesh_directed_edges(faces: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    faces = np.asarray(faces, dtype=np.int64)
-    edge_start = np.concatenate(
-        [faces[:, 0], faces[:, 1], faces[:, 2], faces[:, 1], faces[:, 2], faces[:, 0]]
-    )
-    edge_end = np.concatenate(
-        [faces[:, 1], faces[:, 2], faces[:, 0], faces[:, 0], faces[:, 1], faces[:, 2]]
-    )
-    edges = np.unique(np.stack([edge_start, edge_end], axis=1), axis=0)
-    return edges[:, 0], edges[:, 1]
-
-
-def neighbor_average(values: np.ndarray, edge_start: np.ndarray, edge_end: np.ndarray) -> np.ndarray:
-    sums = np.zeros_like(values, dtype=np.float32)
-    counts = np.zeros((values.shape[0], 1), dtype=np.float32)
-    np.add.at(sums, edge_start, values[edge_end])
-    np.add.at(counts, edge_start, 1.0)
-    return sums / np.clip(counts, 1.0, None)
-
-
-def inpaint_and_smooth_weights(
-    target_vertices: np.ndarray,
-    target_faces: np.ndarray,
-    weights: np.ndarray,
-    matched: np.ndarray,
-    *,
-    inpaint_iterations: int = 60,
-    smooth_iterations: int = 10,
-    smooth_alpha: float = 0.2,
-) -> np.ndarray:
-    weights = np.asarray(weights, dtype=np.float32).copy()
-    matched = np.asarray(matched, dtype=bool)
-    if matched.all():
-        return weights
-    if not matched.any():
-        return weights
-
-    edge_start, edge_end = mesh_directed_edges(target_faces)
-    unknown = ~matched
-    for _ in range(inpaint_iterations):
-        averaged = neighbor_average(weights, edge_start, edge_end)
-        weights[unknown] = averaged[unknown]
-        weights[matched] = np.asarray(weights, dtype=np.float32)[matched]
-
-    smooth_mask = unknown.copy()
-    for _ in range(2):
-        expanded = smooth_mask.copy()
-        expanded[edge_start] |= smooth_mask[edge_end]
-        smooth_mask = expanded
-
-    for _ in range(smooth_iterations):
-        averaged = neighbor_average(weights, edge_start, edge_end)
-        weights[smooth_mask] = (
-            (1.0 - smooth_alpha) * weights[smooth_mask]
-            + smooth_alpha * averaged[smooth_mask]
-        )
-
-    return weights
-
-
-def robust_skinning_weights_transfer(
-    source_vertices: np.ndarray,
-    source_faces: np.ndarray,
-    source_weights: np.ndarray,
-    target_vertices: np.ndarray,
-    target_faces: np.ndarray,
-) -> np.ndarray:
-    matched, transferred = closest_surface_weight_transfer(
-        source_vertices,
-        source_faces,
-        source_weights,
-        target_vertices,
-        target_faces,
-    )
-    transferred = inpaint_and_smooth_weights(
-        target_vertices,
-        target_faces,
-        transferred,
-        matched,
-    )
-    row_sums = np.clip(transferred.sum(axis=1, keepdims=True), 1e-8, None)
-    return (transferred / row_sums).astype(np.float32)
-
-
-def skinning_cache_path(character_root: Path, animation_mesh_path: Path) -> Path:
-    return character_root / "meshes" / f"{animation_mesh_path.stem}.gf5_skinning_cache.npz"
-
-
-def load_cached_character_skinning(
-    cache_path: Path,
-    *,
-    animation_mesh_path: Path,
-    smplx_mesh_path: Path,
-    smplx_model_path: Path,
-) -> np.ndarray | None:
-    if not cache_path.exists():
-        return None
-    try:
-        with np.load(cache_path, allow_pickle=False) as cache:
-            if "cache_version" not in cache or int(cache["cache_version"]) != SKINNING_CACHE_VERSION:
-                return None
-            if int(cache["animation_mesh_mtime_ns"]) != animation_mesh_path.stat().st_mtime_ns:
-                return None
-            if int(cache["smplx_mesh_mtime_ns"]) != smplx_mesh_path.stat().st_mtime_ns:
-                return None
-            if int(cache["smplx_model_mtime_ns"]) != smplx_model_path.stat().st_mtime_ns:
-                return None
-            return np.asarray(cache["skinning_weights"], dtype=np.float32)
-    except Exception:
-        return None
-
-
-def save_cached_character_skinning(
-    cache_path: Path,
-    skinning_weights: np.ndarray,
-    *,
-    animation_mesh_path: Path,
-    smplx_mesh_path: Path,
-    smplx_model_path: Path,
-) -> None:
-    try:
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
-        np.savez_compressed(
-            cache_path,
-            cache_version=np.asarray(SKINNING_CACHE_VERSION, dtype=np.int64),
-            animation_mesh_mtime_ns=np.asarray(animation_mesh_path.stat().st_mtime_ns, dtype=np.int64),
-            smplx_mesh_mtime_ns=np.asarray(smplx_mesh_path.stat().st_mtime_ns, dtype=np.int64),
-            smplx_model_mtime_ns=np.asarray(smplx_model_path.stat().st_mtime_ns, dtype=np.int64),
-            skinning_weights=np.asarray(skinning_weights, dtype=np.float32),
-        )
-    except Exception:
-        pass
-
-
 def packaged_skinning_weights_path(animation_mesh_path: Path) -> Path:
     return animation_mesh_path.with_name(f"{animation_mesh_path.stem}_skinning_weights.npz")
+
+
+def package_metadata_string(data: np.lib.npyio.NpzFile, key: str) -> str:
+    value = np.asarray(data[key])
+    if value.shape == ():
+        return str(value.item())
+    return str(value)
 
 
 def load_packaged_skinning_weights(
@@ -1052,11 +720,22 @@ def load_packaged_skinning_weights(
     with np.load(path, allow_pickle=False) as data:
         version = int(data["version"]) if "version" in data else 0
         package_format = str(data["format"]) if "format" in data else ""
-        if package_format != "gf5_smpl24_skinning_weights" or version < 2:
+        if package_format != "gf5_smpl24_skinning_weights" or version < PACKAGE_SKINNING_VERSION:
             raise ValueError(
                 f"{path.name} is not a current GF5 SMPL-24 skinning package. "
                 "Regenerate the avatar package from the human character demo."
             )
+        expected_metadata = {
+            "rest_joint_coordinate_space": PACKAGE_SKINNING_COORDINATE_SPACE,
+            "rest_pose": PACKAGE_SKINNING_REST_POSE,
+            "motion_pose_space": PACKAGE_SKINNING_MOTION_POSE_SPACE,
+        }
+        for key, expected in expected_metadata.items():
+            if key not in data or package_metadata_string(data, key) != expected:
+                raise ValueError(
+                    f"{path.name} has unexpected {key}; expected {expected!r}. "
+                    "Regenerate the avatar package from the human character demo."
+                )
         if "skinning_weights" not in data:
             raise ValueError(f"{path.name} does not contain skinning_weights.")
         if "rest_joints" not in data:
@@ -1414,36 +1093,6 @@ def load_smpl_asset(model_path: Path) -> AssetData:
     return asset
 
 
-def align_smpl24_rest_yaw_to_viewer(
-    rest_vertices: np.ndarray,
-    rest_joints: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
-    joint_index = {name: index for index, name in enumerate(SMPL_24_PROFILE.joint_names)}
-    shoulder_left = rest_joints[joint_index["left_shoulder"]] - rest_joints[joint_index["right_shoulder"]]
-    hip_left = rest_joints[joint_index["left_hip"]] - rest_joints[joint_index["right_hip"]]
-    lateral = shoulder_left + 0.5 * hip_left
-    lateral_xy = np.asarray([lateral[0], lateral[1]], dtype=np.float32)
-    if float(np.linalg.norm(lateral_xy)) < 1e-6:
-        return np.asarray(rest_vertices, dtype=np.float32), np.asarray(rest_joints, dtype=np.float32)
-
-    yaw = math.atan2(float(lateral_xy[1]), float(lateral_xy[0]))
-    if abs(yaw) < 1e-6:
-        return np.asarray(rest_vertices, dtype=np.float32), np.asarray(rest_joints, dtype=np.float32)
-
-    c = math.cos(-yaw)
-    s = math.sin(-yaw)
-    yaw_rotation = np.asarray(
-        [[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]],
-        dtype=np.float32,
-    )
-    origin = np.asarray(rest_joints[joint_index["pelvis"]], dtype=np.float32)
-
-    def rotate(points: np.ndarray) -> np.ndarray:
-        return ((np.asarray(points, dtype=np.float32) - origin) @ yaw_rotation.T + origin).astype(np.float32)
-
-    return rotate(rest_vertices), rotate(rest_joints)
-
-
 def load_up2you_character_asset(character_root: Path, _smplx_model_path: Path) -> AssetData:
     output_dir = character_root / "outputs"
     animation_mesh_path = output_dir / "animation_lowres.obj"
@@ -1471,7 +1120,6 @@ def load_up2you_character_asset(character_root: Path, _smplx_model_path: Path) -
     one_hot_weights[np.arange(skinning_weights.shape[0]), dominant_joint] = 1.0
 
     rest_vertices = rotate_points_to_viewer(animation_vertices_raw)
-    rest_vertices, rest_joints = align_smpl24_rest_yaw_to_viewer(rest_vertices, rest_joints)
     ground_translation = np.asarray([0.0, 0.0, -float(rest_vertices[:, 2].min())], dtype=np.float32)
     rest_positions = rest_joints + ground_translation
     joints: list[JointSpec] = []
@@ -1894,7 +1542,10 @@ def main() -> None:
             project_root.parent
             / "UP2You/human_models/models/smplx/SMPLX_NEUTRAL.pkl"
         ),
-        help="Path to the SMPL-X template pkl/npz used for UP2You skinning-weight transfer.",
+        help=(
+            "Legacy option kept for older launch scripts. Current avatar packages "
+            "must include precomputed GF5 SMPL-24 skinning weights."
+        ),
     )
     parser.add_argument(
         "--fk-source",

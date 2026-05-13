@@ -15,17 +15,22 @@ from skeleton_profiles import COURSE_BODY_24_PROFILE, SMPL_24_PROFILE, retarget_
 Mat3f = np.ndarray
 Vec3f = np.ndarray
 
-# Convert native SMPL coordinates into the viewer/course convention:
-# - SMPL uses +y as up and +z as front
-# - the course viewer uses +z as up and +y as front
+# Convert SMPL-native package coordinates into the viewer/course body convention.
+#
+# SMPL-family data uses +Y as up and its +X side is anatomical left.
+# GF5 uses +Z up, +Y forward, and for a character facing +Y anatomical right
+# is +X. The extra X flip is intentional: without it, swapping Y/Z is a
+# reflection (determinant -1), which mirrors left/right body motion.
 SMPL_TO_VIEWER_ROTATION = np.asarray(
     [
-        [1.0, 0.0, 0.0],
+        [-1.0, 0.0, 0.0],
         [0.0, 0.0, 1.0],
         [0.0, 1.0, 0.0],
     ],
     dtype=np.float32,
 )
+if not np.isclose(np.linalg.det(SMPL_TO_VIEWER_ROTATION), 1.0):
+    raise RuntimeError("SMPL_TO_VIEWER_ROTATION must be a proper rotation, not a reflection.")
 
 
 @dataclass
