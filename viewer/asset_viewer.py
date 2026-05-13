@@ -1414,6 +1414,36 @@ def load_smpl_asset(model_path: Path) -> AssetData:
     return asset
 
 
+def align_smpl24_rest_yaw_to_viewer(
+    rest_vertices: np.ndarray,
+    rest_joints: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    joint_index = {name: index for index, name in enumerate(SMPL_24_PROFILE.joint_names)}
+    shoulder_left = rest_joints[joint_index["left_shoulder"]] - rest_joints[joint_index["right_shoulder"]]
+    hip_left = rest_joints[joint_index["left_hip"]] - rest_joints[joint_index["right_hip"]]
+    lateral = shoulder_left + 0.5 * hip_left
+    lateral_xy = np.asarray([lateral[0], lateral[1]], dtype=np.float32)
+    if float(np.linalg.norm(lateral_xy)) < 1e-6:
+        return np.asarray(rest_vertices, dtype=np.float32), np.asarray(rest_joints, dtype=np.float32)
+
+    yaw = math.atan2(float(lateral_xy[1]), float(lateral_xy[0]))
+    if abs(yaw) < 1e-6:
+        return np.asarray(rest_vertices, dtype=np.float32), np.asarray(rest_joints, dtype=np.float32)
+
+    c = math.cos(-yaw)
+    s = math.sin(-yaw)
+    yaw_rotation = np.asarray(
+        [[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]],
+        dtype=np.float32,
+    )
+    origin = np.asarray(rest_joints[joint_index["pelvis"]], dtype=np.float32)
+
+    def rotate(points: np.ndarray) -> np.ndarray:
+        return ((np.asarray(points, dtype=np.float32) - origin) @ yaw_rotation.T + origin).astype(np.float32)
+
+    return rotate(rest_vertices), rotate(rest_joints)
+
+
 def load_up2you_character_asset(character_root: Path, _smplx_model_path: Path) -> AssetData:
     output_dir = character_root / "outputs"
     animation_mesh_path = output_dir / "animation_lowres.obj"
@@ -1441,6 +1471,7 @@ def load_up2you_character_asset(character_root: Path, _smplx_model_path: Path) -
     one_hot_weights[np.arange(skinning_weights.shape[0]), dominant_joint] = 1.0
 
     rest_vertices = rotate_points_to_viewer(animation_vertices_raw)
+    rest_vertices, rest_joints = align_smpl24_rest_yaw_to_viewer(rest_vertices, rest_joints)
     ground_translation = np.asarray([0.0, 0.0, -float(rest_vertices[:, 2].min())], dtype=np.float32)
     rest_positions = rest_joints + ground_translation
     joints: list[JointSpec] = []
