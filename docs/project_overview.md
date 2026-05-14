@@ -12,6 +12,10 @@ This project studies a simple version of the character-animation pipeline:
 The emphasis is on understanding the mechanics of animation, not on learning a
 large authoring package.
 
+## Instructor
+
+[Elliott (Shangzhe) Wu](https://www.elliottwu.com/)
+
 ## Assumed Background
 
 You are expected to be comfortable with:
