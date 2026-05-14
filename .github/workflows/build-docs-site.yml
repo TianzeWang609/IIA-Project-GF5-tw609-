@@ -39,8 +39,8 @@ jobs:
 
       - name: Publish generated HTML to gh-pages
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "elliottwu"
+          git config user.email "15921740+elliottwu@users.noreply.github.com"
           rm -rf gh-pages-worktree
           if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
             git fetch origin gh-pages
