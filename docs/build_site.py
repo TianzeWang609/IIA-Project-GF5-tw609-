@@ -283,8 +283,8 @@ def render_actions(page: Page) -> str:
     if page.output == "index.html":
         github_href = html.escape(GITHUB_REPOSITORY_URL, quote=True)
         return f"""          <div class="actions">
-            <a class="button" href="{github_href}" target="_blank" rel="noreferrer">GitHub codebase</a>
-            <a class="button primary" href="setup.html">Start setup</a>
+            <a class="button primary" href="{github_href}" target="_blank" rel="noreferrer">GitHub codebase</a>
+            <a class="button" href="setup.html">Start setup</a>
           </div>
 """
     index = PAGES.index(page)
