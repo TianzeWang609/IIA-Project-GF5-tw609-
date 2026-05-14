@@ -13,15 +13,20 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: gh-pages-publish
+  group: pages-publish
   cancel-in-progress: false
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Check out repository
@@ -37,24 +42,14 @@ jobs:
       - name: Build generated HTML
         run: python docs/build_site.py --output site --source-base-url https://github.com/CambridgeCVCourses/IIA-Project-GF5/blob/main/docs
 
-      - name: Publish generated HTML to gh-pages
-        run: |
-          git config user.name "elliottwu"
-          git config user.email "15921740+elliottwu@users.noreply.github.com"
-          rm -rf gh-pages-worktree
-          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
-            git fetch origin gh-pages
-            git worktree add gh-pages-worktree origin/gh-pages
-          else
-            git worktree add --detach gh-pages-worktree
-            git -C gh-pages-worktree checkout --orphan gh-pages
-          fi
-          find gh-pages-worktree -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-          cp -R site/. gh-pages-worktree/
-          git -C gh-pages-worktree add -A
-          if git -C gh-pages-worktree diff --cached --quiet; then
-            echo "Generated gh-pages content is unchanged."
-          else
-            git -C gh-pages-worktree commit -m "Build docs site"
-            git -C gh-pages-worktree push origin HEAD:gh-pages
-          fi
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload generated HTML artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy generated HTML to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
