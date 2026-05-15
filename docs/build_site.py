@@ -504,7 +504,7 @@ class MarkdownRenderer:
         self.close_blocks()
 
 
-def render_nav(current: Page) -> str:
+def render_nav(current: Page | None, *, slides_active: bool = False) -> str:
     def nav_link(label: str, href: str, active: bool = False, class_name: str = "") -> str:
         aria = ' aria-current="page"' if active else ""
         class_attr = f' class="{html.escape(class_name, quote=True)}"' if class_name else ""
@@ -526,7 +526,7 @@ def render_nav(current: Page) -> str:
 {material_links}
             </div>
           </div>""",
-        nav_link("Slides", "intro.html"),
+        nav_link("Slides", "intro.html", slides_active),
         (
             f'          <a class="nav-github-button" href="{github_href}" '
             'target="_blank" rel="noreferrer">GitHub</a>'

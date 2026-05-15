@@ -24,11 +24,11 @@ sys.path.insert(0, str(DOCS_ROOT))
 from build_site import (
     COPYRIGHT_OWNER,
     COPYRIGHT_OWNER_URL,
-    GITHUB_REPOSITORY_URL,
     MarkdownRenderer,
     SITE_TITLE,
     format_inline,
     indent,
+    render_nav,
     rewrite_href,
     schedule_calendar_embed,
     slugify,
@@ -561,7 +561,6 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
     title = slides[0].title if slides else "Intro Session"
     html_title = SITE_TITLE if title == SITE_TITLE else f"{title} | {SITE_TITLE}"
     source_relative = Path(os.path.relpath(source, output_dir)).as_posix()
-    github_href = html.escape(GITHUB_REPOSITORY_URL, quote=True)
     return f"""<!doctype html>
 <!-- Generated from {html.escape(source.name)} by slides/build_slides.py. Do not edit by hand. -->
 <html lang="en">
@@ -574,18 +573,18 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
   </head>
   <body class="deck-page" data-deck="{html.escape(source.stem, quote=True)}">
     <a class="skip-link" href="#deck">Skip to slides</a>
-    <header class="deck-header">
-      <div class="deck-shell">
+    <header class="site-header deck-site-header">
+      <div class="nav-shell">
         <a class="brand" href="index.html" aria-label="GF5 home">
           <span class="brand-mark">GF5</span>
           <span>{html.escape(SITE_TITLE)}</span>
         </a>
-        <nav class="deck-links" aria-label="Presentation links">
-          <a href="index.html">Website</a>
-          <a href="{github_href}" target="_blank" rel="noreferrer">GitHub</a>
-          <a href="{html.escape(source_relative, quote=True)}">Source</a>
+        <nav class="nav-links" aria-label="Main navigation">
+{render_nav(None, slides_active=True)}
         </nav>
       </div>
+    </header>
+    <header class="deck-header" aria-label="Presentation controls">
       <div class="deck-toolbar" aria-label="Presentation controls">
         <div class="deck-control-cluster" aria-label="Slide movement">
           <button class="icon-button" type="button" data-action="first" aria-label="Return to first slide" title="First slide"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M5 19V5"></path><path d="m19 18-6-6 6-6"></path><path d="m13 18-6-6 6-6"></path></svg></button>
