@@ -647,6 +647,8 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
         const printButton = document.querySelector('[data-action="print"]');
         const downloadNotesButton = document.querySelector('[data-action="download-notes"]');
         const root = document.body;
+        const deck = document.querySelector(".deck");
+        const slidesRegion = document.querySelector(".slides");
         const notesApiUrl = "api/intro-notes";
         const noteCache = new Map();
         let current = 0;
@@ -907,8 +909,10 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
           document.body.classList.toggle("is-fullscreen", active);
           fullscreenLabel.textContent = active ? "Exit" : "Full";
           fullscreenButton.setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
+          updateResponsiveStageSize();
           updateFullscreenScale();
           requestAnimationFrame(() => {{
+            updateResponsiveStageSize();
             fitActiveSlide();
             updateFullscreenScale();
           }});
@@ -927,6 +931,28 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
           const designHeight = parseFloat(styles.getPropertyValue("--slide-stage-height")) || 540;
           const scale = Math.max(0.1, Math.min(window.innerWidth / designWidth, window.innerHeight / designHeight));
           root.style.setProperty("--deck-fullscreen-scale", scale.toFixed(3));
+        }}
+
+        function updateResponsiveStageSize() {{
+          if (document.fullscreenElement || root.classList.contains("is-printing")) {{
+            root.style.removeProperty("--deck-slide-width");
+            return;
+          }}
+          if (!deck || !slidesRegion) {{
+            return;
+          }}
+          const styles = getComputedStyle(root);
+          const designWidth = parseFloat(styles.getPropertyValue("--slide-stage-width")) || 960;
+          const designHeight = parseFloat(styles.getPropertyValue("--slide-stage-height")) || 540;
+          const aspect = designWidth / designHeight;
+          const slidesRect = slidesRegion.getBoundingClientRect();
+          const availableWidth = Math.max(0, slidesRect.width);
+          const availableHeight = Math.max(0, slidesRect.height);
+          if (!availableWidth || !availableHeight) {{
+            return;
+          }}
+          const width = Math.min(designWidth, availableWidth, availableHeight * aspect);
+          root.style.setProperty("--deck-slide-width", `${{Math.max(280, width).toFixed(1)}}px`);
         }}
 
         function nextFrame() {{
@@ -1020,6 +1046,7 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
 
         function refreshSlideLayout() {{
           requestAnimationFrame(() => {{
+            updateResponsiveStageSize();
             fitActiveSlide();
             updateFullscreenScale();
           }});
