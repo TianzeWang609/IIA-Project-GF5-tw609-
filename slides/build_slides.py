@@ -573,7 +573,7 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
   </head>
   <body class="deck-page" data-deck="{html.escape(source.stem, quote=True)}">
     <a class="skip-link" href="#deck">Skip to slides</a>
-    <header class="site-header deck-site-header">
+    <header class="site-header">
       <div class="nav-shell">
         <a class="brand" href="index.html" aria-label="GF5 home">
           <span class="brand-mark">GF5</span>
@@ -618,7 +618,7 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
       </aside>
     </main>
 
-    <footer class="footer deck-footer">
+    <footer class="footer">
       <div class="footer-inner">
         <p>
           Copyright &copy; 2026
