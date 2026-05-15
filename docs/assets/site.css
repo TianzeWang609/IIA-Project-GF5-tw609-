@@ -744,7 +744,7 @@ pre code {
 }
 
 .assessment-table-clip .assessment-table {
-  min-width: 58rem;
+  min-width: 0;
   table-layout: fixed;
 }
 

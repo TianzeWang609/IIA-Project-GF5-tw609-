@@ -686,7 +686,7 @@
 }
 
 .assessment-table-clip .assessment-table {
-  min-width: 56rem;
+  min-width: 0;
   table-layout: fixed;
 }
 
