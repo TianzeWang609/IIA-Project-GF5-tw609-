@@ -795,6 +795,26 @@ pre code {
   white-space: nowrap;
 }
 
+.assessment-table th:first-child,
+.assessment-table td:first-child {
+  width: 32%;
+}
+
+.assessment-table th:nth-child(2),
+.assessment-table td:nth-child(2) {
+  width: 34%;
+}
+
+.assessment-table th:nth-child(3),
+.assessment-table td:nth-child(3) {
+  width: 8%;
+}
+
+.assessment-table th:nth-child(4),
+.assessment-table td:nth-child(4) {
+  width: 26%;
+}
+
 .assessment-table td:nth-child(3) {
   color: var(--ink);
   font-weight: 800;
