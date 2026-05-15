@@ -326,16 +326,18 @@
 }
 
 .slide-stage {
+  position: relative;
   width: var(--deck-slide-width);
   max-width: 100%;
   aspect-ratio: 16 / 9;
-  display: grid;
-  place-items: center;
   overflow: hidden;
   margin: 0 auto;
 }
 
 .slide-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: var(--slide-stage-width);
   height: var(--slide-stage-height);
   display: flex;
@@ -349,7 +351,7 @@
   background: var(--surface);
   box-shadow: var(--shadow);
   transform: scale(var(--deck-stage-scale));
-  transform-origin: center;
+  transform-origin: top left;
 }
 
 .slide-content {
@@ -1118,6 +1120,8 @@
 }
 
 .deck-page.is-fullscreen .slide-canvas {
+  top: 0;
+  left: 0;
   flex: 0 0 auto;
   width: var(--slide-stage-width);
   height: var(--slide-stage-height);
@@ -1348,6 +1352,7 @@
 
   .slide-stage {
     flex: 0 0 auto;
+    position: relative;
     width: var(--slide-stage-width);
     height: var(--slide-stage-height);
     aspect-ratio: auto;
@@ -1355,6 +1360,8 @@
   }
 
   .slide-canvas {
+    top: 0;
+    left: 0;
     flex: 0 0 auto;
     width: var(--slide-stage-width);
     height: var(--slide-stage-height);
