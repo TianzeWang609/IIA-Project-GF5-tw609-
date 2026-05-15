@@ -520,12 +520,12 @@ def render_nav(current: Page) -> str:
     github_href = html.escape(GITHUB_REPOSITORY_URL, quote=True)
     links = [
         nav_link(overview.nav_label, overview.output, current == overview),
-        f"""          <details class="{material_class}">
-            <summary>Materials</summary>
+        f"""          <div class="{material_class}">
+            <button class="nav-dropdown-trigger" type="button" aria-haspopup="true">Materials</button>
             <div class="nav-dropdown-menu">
 {material_links}
             </div>
-          </details>""",
+          </div>""",
         nav_link("Slides", "intro.html"),
         (
             f'          <a class="nav-github-button" href="{github_href}" '
