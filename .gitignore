@@ -37,3 +37,6 @@ staff_tools/
 
 # Local generated site preview
 site/
+
+# Local intro slide notes
+slides/student_notes/

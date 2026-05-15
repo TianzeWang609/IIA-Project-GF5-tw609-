@@ -78,6 +78,10 @@ IGNORED_TEXT_FILES = {
     ".github/workflows/student-release-audit.yml",
 }
 
+GENERATED_SITE_LINK_SOURCES = {
+    "slides/intro.md",
+}
+
 
 def normalize(path: Path) -> str:
     return path.as_posix().strip("/")
@@ -132,7 +136,7 @@ def audit(root: Path, *, max_file_mb: int) -> list[str]:
             if needle in lowered:
                 problems.append(f"forbidden text {needle!r} in {relative}")
 
-        if path.suffix.lower() in LINK_SUFFIXES:
+        if path.suffix.lower() in LINK_SUFFIXES and relative not in GENERATED_SITE_LINK_SOURCES:
             problems.extend(check_links(root, path, text))
 
     return problems

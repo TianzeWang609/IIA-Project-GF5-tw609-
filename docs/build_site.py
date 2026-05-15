@@ -37,9 +37,16 @@ PAGES = [
     Page("part2.md", "part2.html", "Part 2", "Part 2"),
     Page("interim.md", "interim.html", "Interim", "Checkpoint"),
     Page("part3_placeholder.md", "part3.html", "Part 3", "Coming later"),
+    Page("references.md", "references.html", "References", "Further reading"),
 ]
 
 SOURCE_TO_OUTPUT = {page.source: page.output for page in PAGES}
+SOURCE_TO_OUTPUT.update(
+    {
+        "../slides/intro.md": "intro.html",
+        "slides/intro.md": "intro.html",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -111,6 +118,186 @@ def format_inline(text: str) -> str:
     return "".join(rendered)
 
 
+def split_directive_fields(text: str) -> list[str]:
+    return [field.strip() for field in text.split("|")]
+
+
+def youtube_video_id(source: str) -> str:
+    source = source.strip()
+    match = re.search(r"(?:v=|youtu\.be/|embed/)([A-Za-z0-9_-]{6,})", source)
+    return match.group(1) if match else source
+
+
+def youtube_embed(markdown: str) -> str:
+    fields = split_directive_fields(markdown)
+    if not fields or not fields[0]:
+        raise SystemExit("YouTube directive is missing a video id")
+
+    video_id = html.escape(youtube_video_id(fields[0]), quote=True)
+    title = fields[1] if len(fields) > 1 and fields[1] else "YouTube video"
+    caption = fields[2] if len(fields) > 2 else ""
+    title_attr = html.escape(strip_inline_markdown(title), quote=True)
+    caption_html = f"<figcaption>{format_inline(caption)}</figcaption>" if caption else ""
+    return (
+        '<figure class="doc-media-embed youtube-embed">'
+        '<div class="doc-media-frame">'
+        f'<iframe src="https://www.youtube-nocookie.com/embed/{video_id}?rel=0" '
+        f'title="{title_attr}" loading="lazy" allowfullscreen '
+        'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; '
+        'picture-in-picture; web-share"></iframe>'
+        "</div>"
+        f"{caption_html}"
+        "</figure>"
+    )
+
+
+SCHEDULE_COLUMNS = [
+    ("Tue", "am", "Tue AM", "11-13"),
+    ("Fri", "am", "Fri AM", "9-11"),
+    ("Fri", "pm", "Fri PM", "14-16 / 4pm"),
+]
+SCHEDULE_WEEKS = [
+    {
+        "label": "Intro",
+        "dates": "15 May",
+        "am": {"Fri": [("mandatory", "Intro session", "9-11, LR11")]},
+        "pm": {"Fri": [("help", "Help", "3-4, LR11")]},
+    },
+    {
+        "label": "Week 1",
+        "dates": "18-22 May",
+        "am": {
+            "Tue": [("help", "Help", "11-13, BE454")],
+            "Fri": [("help", "Help", "9-11, BE454")],
+        },
+        "pm": {"Fri": [("mandatory", "Mandatory", "14-16, LR11")]},
+    },
+    {
+        "label": "Week 2",
+        "dates": "25-29 May",
+        "am": {
+            "Tue": [("help", "Help", "11-13, BE454")],
+            "Fri": [("help", "Help", "9-11, BE454")],
+        },
+        "pm": {
+            "Fri": [
+                ("mandatory", "Mandatory", "14-16, LR11"),
+                ("deadline", "Interim due", "4pm"),
+            ]
+        },
+    },
+    {
+        "label": "Week 3",
+        "dates": "1-5 Jun",
+        "am": {
+            "Tue": [("help", "Help", "11-13, BE454")],
+            "Fri": [("help", "Help", "9-11, BE454")],
+        },
+        "pm": {"Fri": [("mandatory", "Mandatory", "14-16, LR11")]},
+    },
+    {
+        "label": "Week 4",
+        "dates": "8-12 Jun",
+        "am": {
+            "Tue": [("presentation", "Final presentation", "11-13")],
+            "Fri": [("help", "Help", "9-11, BE454")],
+        },
+        "pm": {
+            "Fri": [
+                ("mandatory", "Mandatory", "14-16, LR11"),
+                ("deadline", "Final report due", "4pm; animation due"),
+            ]
+        },
+    },
+]
+
+
+def schedule_calendar_embed(markdown: str = "") -> str:
+    def render_event(kind: str, title: str, meta: str) -> str:
+        return (
+            f'<span class="calendar-pin is-{html.escape(kind, quote=True)}">'
+            '<span class="pin-dot" aria-hidden="true"></span>'
+            "<span>"
+            f"<strong>{html.escape(title)}</strong>"
+            f"<small>{html.escape(meta)}</small>"
+            "</span>"
+            "</span>"
+        )
+
+    rows: list[str] = []
+    for week in SCHEDULE_WEEKS:
+        cells = [
+            '<tr>',
+            '<th class="calendar-week" scope="row">',
+            f'<strong>{html.escape(week["label"])}</strong>',
+            f'<span>{html.escape(week["dates"])}</span>',
+            "</th>",
+        ]
+        for day, slot, _label, _meta in SCHEDULE_COLUMNS:
+            events = week.get(slot, {}).get(day, [])
+            content = "".join(render_event(*event) for event in events)
+            empty_class = " is-empty" if not content else ""
+            multiple_class = " has-multiple" if len(events) > 1 else ""
+            cells.append(
+                f'<td class="calendar-cell{empty_class}{multiple_class}">'
+                f'<div class="calendar-cell-inner">{content}</div>'
+                "</td>"
+            )
+        cells.append("</tr>")
+        rows.append("".join(cells))
+
+    legend = "".join(
+        render_event(kind, title, "")
+        for kind, title in [
+            ("mandatory", "Mandatory"),
+            ("help", "Optional help"),
+            ("deadline", "Deadline"),
+            ("presentation", "Presentation"),
+        ]
+    )
+    return (
+        '<section class="schedule-calendar" aria-label="Project session calendar">'
+        '<div class="calendar-legend" aria-label="Calendar legend">'
+        f"{legend}"
+        "</div>"
+        '<table class="calendar-table">'
+        "<thead><tr><th>Week</th>"
+        + "".join(
+            f"<th><span>{html.escape(label)}</span><small>{html.escape(meta)}</small></th>"
+            for _day, _slot, label, meta in SCHEDULE_COLUMNS
+        )
+        + "</tr></thead>"
+        "<tbody>"
+        + "".join(rows)
+        + "</tbody></table></section>"
+    )
+
+
+def is_table_row(line: str) -> bool:
+    stripped = line.strip()
+    return stripped.startswith("|") and stripped.endswith("|") and stripped.count("|") >= 2
+
+
+def parse_table_row(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def is_table_separator(row: list[str]) -> bool:
+    return bool(row) and all(re.match(r"^:?-{3,}:?$", cell.strip()) for cell in row)
+
+
+def table_class_for(headers: list[str]) -> str:
+    normalized = [strip_inline_markdown(header).strip().lower() for header in headers]
+    classes = ["doc-table"]
+    if normalized[:3] == ["week", "mode", "focus"]:
+        classes.append("timeline-table")
+    if "coursework" in normalized and "due date" in normalized:
+        classes.append("assessment-table")
+    if normalized[:3] == ["date", "time", "what"]:
+        classes.append("key-dates-table")
+    return " ".join(classes)
+
+
 class MarkdownRenderer:
     def __init__(self) -> None:
         self.lines: list[str] = []
@@ -120,6 +307,7 @@ class MarkdownRenderer:
         self.list_type: str | None = None
         self.list_items: list[str] = []
         self.list_start = 1
+        self.table_rows: list[list[str]] = []
         self.in_code = False
         self.code_info = ""
         self.code_lines: list[str] = []
@@ -148,6 +336,38 @@ class MarkdownRenderer:
 
         if self.in_code:
             self.code_lines.append(line)
+            return
+
+        if is_table_row(line):
+            self.close_paragraph()
+            self.close_list()
+            self.table_rows.append(parse_table_row(line))
+            return
+
+        self.close_table()
+
+        directive = re.match(r"^\s*\{\{([a-z-]+):\s*([^}]+?)\s*\}\}\s*$", line.strip())
+        if directive:
+            self.close_blocks()
+            mode, payload = directive.groups()
+            if mode == "youtube":
+                self.out.append(youtube_embed(payload))
+                return
+            if mode == "schedule-calendar":
+                self.out.append(schedule_calendar_embed(payload))
+                return
+            raise SystemExit(f"Unknown site directive: {mode}")
+
+        image = re.match(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$", line.strip())
+        if image:
+            self.close_blocks()
+            alt = html.escape(image.group(1), quote=True)
+            src = html.escape(rewrite_href(image.group(2)), quote=True)
+            self.out.append(
+                '<figure class="doc-figure">'
+                f'<img src="{src}" alt="{alt}">'
+                "</figure>"
+            )
             return
 
         if not line.strip():
@@ -204,6 +424,37 @@ class MarkdownRenderer:
         self.code_info = ""
         self.code_lines = []
 
+    def close_table(self) -> None:
+        if not self.table_rows:
+            return
+
+        rows = self.table_rows
+        self.table_rows = []
+        if len(rows) < 2 or not is_table_separator(rows[1]):
+            for row in rows:
+                self.out.append(f"<p>{format_inline(' | '.join(row))}</p>")
+            return
+
+        headers = rows[0]
+        body_rows = rows[2:]
+        table_class = table_class_for(headers)
+        self.out.append(f'<table class="{table_class}">')
+        self.out.append("  <thead>")
+        self.out.append("    <tr>")
+        for cell in headers:
+            self.out.append(f"      <th>{format_inline(cell)}</th>")
+        self.out.append("    </tr>")
+        self.out.append("  </thead>")
+        self.out.append("  <tbody>")
+        for row in body_rows:
+            padded = row + [""] * max(0, len(headers) - len(row))
+            self.out.append("    <tr>")
+            for cell in padded[: len(headers)]:
+                self.out.append(f"      <td>{format_inline(cell)}</td>")
+            self.out.append("    </tr>")
+        self.out.append("  </tbody>")
+        self.out.append("</table>")
+
     def close_paragraph(self) -> None:
         if self.paragraph:
             text = " ".join(self.paragraph)
@@ -213,16 +464,21 @@ class MarkdownRenderer:
     def close_list(self) -> None:
         if self.list_type:
             list_class = ""
-            checklist_sections = {
-                "learning-goals",
-                "part-1-output",
-                "part-2-output",
-                "what-to-submit",
-                "required-figures-and-media",
-                "what-to-do-now",
+            list_classes = {
+                "learning-goals": "checklist",
+                "part-1-output": "checklist",
+                "part-2-output": "checklist",
+                "what-to-submit": "checklist",
+                "required-figures-and-media": "checklist",
+                "what-to-do-now": "checklist",
+                "motivation": "feature-list",
+                "four-week-shape": "timeline-list",
+                "assessment-at-a-glance": "assessment-list",
+                "animation-and-rigging": "reference-list",
+                "recommended-starting-points": "reference-list",
             }
-            if self.list_type == "ul" and self.current_heading_id in checklist_sections:
-                list_class = ' class="checklist"'
+            if self.list_type == "ul" and self.current_heading_id in list_classes:
+                list_class = f' class="{list_classes[self.current_heading_id]}"'
 
             if self.list_type == "ol" and self.list_start != 1:
                 self.out.append(f'<ol start="{self.list_start}"{list_class}>')
@@ -236,6 +492,7 @@ class MarkdownRenderer:
             self.list_start = 1
 
     def close_blocks(self) -> None:
+        self.close_table()
         self.close_paragraph()
         self.close_list()
 
@@ -285,6 +542,7 @@ def render_actions(page: Page) -> str:
         return f"""          <div class="actions">
             <a class="button primary" href="{github_href}" target="_blank" rel="noreferrer">GitHub codebase</a>
             <a class="button" href="setup.html">Start setup</a>
+            <a class="button" href="intro.html">Intro slides</a>
           </div>
 """
     index = PAGES.index(page)
@@ -316,7 +574,8 @@ def render_hero(page: Page, doc: RenderedDocument) -> str:
           <p class="eyebrow">{eyebrow}</p>
           <h1>{title}</h1>
           <p class="lede">The Markdown handouts are the source of truth; this page is generated from them for the student-facing release.</p>
-{actions}        </div>
+{actions}          <p class="instructor-line"><strong>Instructor:</strong> <a href="https://www.elliottwu.com/">Elliott (Shangzhe) Wu</a></p>
+        </div>
         <figure class="visual-panel" aria-label="Animation viewer preview">
           <img src="assets/gf5-rig-preview.svg" alt="Diagram of the GF5 viewer showing a block character, skeleton, skinning weights, and a timeline.">
         </figure>

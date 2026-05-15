@@ -19,6 +19,29 @@ The project is organised into three parts:
 - [Part 2: Skinning and LBS](https://cambridgecvcourses.github.io/IIA-Project-GF5/part2.html)
 - [Interim Report](https://cambridgecvcourses.github.io/IIA-Project-GF5/interim.html)
 - [Part 3: Coming Soon](https://cambridgecvcourses.github.io/IIA-Project-GF5/part3.html)
+- [References](https://cambridgecvcourses.github.io/IIA-Project-GF5/references.html)
+- [Intro Slides](https://cambridgecvcourses.github.io/IIA-Project-GF5/intro.html)
+
+## Intro Slides
+
+For quick viewing, open the [online intro slides](https://cambridgecvcourses.github.io/IIA-Project-GF5/intro.html).
+To open the same HTML locally without project-folder note saving, run:
+
+```bash
+python3 docs/build_site.py
+python3 slides/build_slides.py
+```
+
+Then open `site/intro.html` in a browser.
+
+To save your own slide notes locally, run this from the repository root:
+
+```bash
+python3 slides/serve.py
+```
+
+Then open `http://127.0.0.1:8095/intro.html`. Notes are saved in
+`slides/student_notes/intro_notes.md`.
 
 ## Running the Viewer
 

@@ -9,6 +9,9 @@ on:
       - "docs/build_site.py"
       - "docs/assets/site.css"
       - "docs/assets/**"
+      - "slides/**/*.md"
+      - "slides/**/*.py"
+      - "slides/assets/**"
       - ".github/workflows/build-docs-site.yml"
   workflow_dispatch:
 
@@ -40,7 +43,9 @@ jobs:
           python-version: "3.x"
 
       - name: Build generated HTML
-        run: python docs/build_site.py --output site --source-base-url https://github.com/CambridgeCVCourses/IIA-Project-GF5/blob/main/docs
+        run: |
+          python docs/build_site.py --output site --source-base-url https://github.com/CambridgeCVCourses/IIA-Project-GF5/blob/main/docs
+          python slides/build_slides.py --output site/intro.html
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

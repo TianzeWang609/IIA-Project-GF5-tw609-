@@ -1,6 +1,29 @@
 # GF5: Animating 3D Characters
 
+## Motivation
+
+Animated characters look magical, but the core ideas are concrete:
+
+- a surface that looks like a person or creature
+- an internal skeleton that gives it structure
+- motion data that says how the body changes over time
+- rendering choices that make the result readable
+
+The project studies those pieces directly, starting with a block character
+where the hierarchy is visible before moving toward human-avatar scenes.
+
+### Immersive Virtual Characters
+
+{{youtube: WU0gvPcc3jQ | The Matrix Awakens: An Unreal Engine 5 Experience | Digital humans, real-time staging, cinematic lighting, and interactive 3D.}}
+
+### AI Rigging & Neural Layer
+
+{{youtube: dMrSRhwSkTQ | Introducing AI Rigging and Neural Layer - Autodesk Flow Studio | AI-assisted rigging, video-driven animation, and neural rendering as a near-future workflow.}}
+
 ## What This Project Is About
+
+Build a small character-animation pipeline, then use it to create an animated
+human-avatar scene.
 
 This project studies a simple version of the character-animation pipeline:
 
@@ -12,9 +35,50 @@ This project studies a simple version of the character-animation pipeline:
 The emphasis is on understanding the mechanics of animation, not on learning a
 large authoring package.
 
-## Instructor
+## Four-Week Shape
 
-[Elliott (Shangzhe) Wu](https://www.elliottwu.com/)
+| Week | Mode | Focus |
+| --- | --- | --- |
+| Week 1 | Individual | Implement and debug forward kinematics on a simple block character. |
+| Week 2 | Individual | Implement and compare one-hot skinning and linear blend skinning on SMPL. |
+| Week 3 | Pairs | Explore human motion clips and reconstruct group-member characters. |
+| Week 4 | Pairs | Refine the group animation scene and export the final video. |
+
+## Assessment
+
+| Coursework | Due date | Marks | Mode |
+| --- | --- | --- | --- |
+| Interim report | Friday 29 May 2026 (4pm) | 20 | Individual |
+| Interim animation results | Friday 29 May 2026 (4pm) | 5 | Individual |
+| Final presentation | Tuesday 9 June 2026 (11-1) | 10 | Group |
+| Final report | Friday 12 June 2026 (4pm) | 30 | 50% individual, 50% group |
+| Final animation results | Friday 12 June 2026 (4pm) | 15 | Group |
+
+## Calendar
+
+{{schedule-calendar: project}}
+
+For the BE454 help sessions, a booking system will be set up later so that too
+many people do not arrive at the same time. You can still drop by the office.
+
+## Intro Slides
+
+Use the [intro slides](../slides/intro.md) for the first session.
+
+For quick viewing, open the slides from the project website. To open the same
+HTML locally without project-folder note saving, run
+`python3 docs/build_site.py`, then `python3 slides/build_slides.py`, and open
+`site/intro.html` in a browser.
+
+To keep your own notes in the project folder, run this from the repository
+root:
+
+```bash
+python3 slides/serve.py
+```
+
+Then open `http://127.0.0.1:8095/intro.html`. Your notes are saved to
+`slides/student_notes/intro_notes.md`.
 
 ## Assumed Background
 
@@ -99,29 +163,19 @@ structure are defined in the relevant handouts:
 
 ## Use Of AI Tools
 
-For this project, you should not use AI tools to generate the work that you
-submit.
+For Parts 1 and 2, do not use AI tools to generate your submitted code, derive
+the core math for you, or generate your results.
 
-In particular, do not use AI tools to:
+For Parts 3 and 4, you may use AI tools as part of the creative or production
+workflow. The focus is still to create a realistic, controllable 3D avatar
+rendering scene and to explain how your group produced it.
 
-- write or substantially rewrite your code
-- derive the core math for you
-- write sections of your report
-- generate fake results, figures, citations, or explanations
+For both reports, do not use AI tools to generate the report content wholesale.
+Minor grammar, wording, or formatting help is allowed, but the explanation,
+figures, results, and interpretation must be yours.
 
-The point of the project is for you to implement, test, and explain the
-animation pipeline yourself.
-
-If you use AI tools at all, keep it to minor support only, for example:
-
-- asking for clarification of a concept or notation you are struggling with
-- spelling or grammar checks on text you wrote yourself
-- help with software setup or environment issues
-
-The interim report should include a short `AI Use Statement` saying either:
-
-- `No AI tools used`, or
-- what limited non-substantive use, if any, you made of AI tools
+Every report must include an `AI Use Statement` saying either `No AI tools
+used`, or describing the limited use you made of AI tools.
 
 ## Main Files
 
