@@ -948,11 +948,16 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
           const slidesRect = slidesRegion.getBoundingClientRect();
           const availableWidth = Math.max(0, slidesRect.width);
           const availableHeight = Math.max(0, slidesRect.height);
-          if (!availableWidth || !availableHeight) {{
+          if (!availableWidth) {{
             return;
           }}
-          const width = Math.min(designWidth, availableWidth, availableHeight * aspect);
-          root.style.setProperty("--deck-slide-width", `${{Math.max(280, width).toFixed(1)}}px`);
+          const narrowScreen = window.matchMedia("(max-width: 760px)").matches;
+          const heightLimitedWidth = availableHeight ? availableHeight * aspect : designWidth;
+          const width = narrowScreen
+            ? Math.min(designWidth, availableWidth)
+            : Math.min(designWidth, availableWidth, heightLimitedWidth);
+          const minWidth = Math.min(280, availableWidth);
+          root.style.setProperty("--deck-slide-width", `${{Math.max(minWidth, width).toFixed(1)}}px`);
         }}
 
         function nextFrame() {{

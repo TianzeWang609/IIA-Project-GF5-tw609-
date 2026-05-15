@@ -1293,7 +1293,8 @@
   }
 
   .slide-canvas {
-    min-height: 28rem;
+    width: min(100%, var(--deck-slide-width));
+    min-height: 0;
   }
 
   .slide-content {
