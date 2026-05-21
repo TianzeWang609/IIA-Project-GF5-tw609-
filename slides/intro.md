@@ -223,6 +223,42 @@ and video export.
 
 ---
 
+# Week 2: Skinning And SMPL
+
+## From skeleton motion to deforming surfaces
+
+???
+Use this as the section break before the Part 2 technical material. Remind
+students that the same joint motion now has to drive a continuous surface, not
+separate rigid blocks.
+
+---
+
+# Why Skinning Changes The Problem
+
+- same FK poses from Part 1
+- a human mesh that bends around joints
+- weights decide how much each bone moves each vertex
+- one-hot binding is the useful baseline; LBS is the smoother version
+
+???
+Keep this as the Part 2 equivalent of the block-character motivation slide.
+The point is not to introduce new motion yet; it is to change how the visible
+surface follows the motion they already made.
+
+---
+
+# Skinning
+
+{{youtube: https://youtu.be/3RSwjZLClRc?t=226 | 3D Rigging is Beautiful, Here's How It Works! | A second pass focused on skinning: how the surface follows a rig instead of moving as separate rigid parts.}}
+
+???
+Show a short excerpt starting at the skinning/deformation portion. Connect it
+directly to the coding contrast students will implement: one-hot attachment
+versus linear blend skinning on the same skeleton motion.
+
+---
+
 # Part 2: Skinning And SMPL
 
 {{bullets: ../docs/part2.md#Learning Goals}}
@@ -232,6 +268,137 @@ Same motion, different character surface.
 ???
 Keep returning to the contrast: the skeleton pose may be identical, while the
 surface behavior changes because the mesh is attached differently.
+
+---
+
+# Inputs To Skinning
+
+- `model_data.rest_vertices`: mesh vertices in the default pose, shape `(V, 3)`
+- `model_data.rest_joints`: joint centres in the default pose, shape `(J, 3)`
+- `model_data.ground_translation`: shift that puts the rest body on the floor
+- `world_rotations`: posed joint rotations from FK, shape `(J, 3, 3)`
+- `world_positions`: posed joint centres from FK, shape `(J, 3)`
+- `model_data.skinning_weights`: vertex-to-joint weights, shape `(V, J)`
+
+???
+Use this slide to demystify the function signature before showing any formula.
+The important split is that `model_data` describes the unanimated character,
+while `world_rotations` and `world_positions` describe the current animation
+pose.
+
+---
+
+# Local Coordinates
+
+Local coordinates are measured in a moving parent frame.
+
+- `joint.translation`: offset from parent joint to child joint
+- `local_rotations[j]`: how joint `j` rotates relative to its parent
+- if the parent turns, the child's local axes turn with it
+
+???
+Use a physical gesture here: your forearm direction is local to the upper arm.
+When the shoulder turns, the elbow and forearm coordinate frame move with it.
+The local numbers can stay the same while the world-space result changes.
+
+---
+
+# World Coordinates
+
+World coordinates are measured in the fixed viewer scene.
+
+- one shared origin and axis system for the whole character
+- `world_positions[j]`: final scene position of joint `j`
+- `world_rotations[j]`: final scene orientation of joint `j`
+- the renderer draws points after they are in world coordinates
+
+???
+Contrast this with local coordinates. World coordinates answer "where is this
+point on the screen/in the scene now?" Local coordinates answer "where is this
+point relative to the parent frame?"
+
+---
+
+# FK Converts Local To World
+
+For a child joint `j` with parent `p`:
+
+```text
+world_rotations[j] = world_rotations[p] @ local_rotations[j]
+world_positions[j] = world_positions[p]
+                     + world_rotations[p] @ joint.translation
+```
+
+???
+This is the Part 1 recurrence in compact form. The parent rotation matters in
+the position line because the child offset is written in the parent's local
+coordinate frame.
+
+---
+
+# Why Skinning Uses World Transforms
+
+Local rotations are the controls; world transforms are the result.
+
+- a hand vertex is affected by shoulder, elbow, and wrist motion
+- the wrist's local rotation alone does not include its parent joints
+- after FK, each joint has a final world position and orientation
+- skinning uses that final joint frame to move nearby vertices
+
+???
+This is the key distinction. Students should not try to skin directly with
+`local_rotations[j]`, because that would ignore the accumulated motion of the
+parent chain. Local rotations are still important: FK turns them into the
+world-space joint frames used by skinning.
+
+---
+
+# Rest Vertices And Rest Joints
+
+The rest pose is the character before animation.
+
+- `rest_vertices[i]`: where mesh vertex `i` starts in rest pose
+- `rest_joints[j]`: where joint `j` starts in rest pose
+- add `ground_translation` so both are in viewer world coordinates
+- `rest_vertices[i] - rest_joints[j]`: vertex `i` as seen from joint `j`
+
+???
+This is the conceptual step students often miss. A joint does not rotate an
+absolute scene point directly; it rotates the offset from that joint to the
+vertex, then places the result back at the posed joint location.
+
+---
+
+# World Positions And Rotations
+
+Forward kinematics has already accumulated the hierarchy.
+
+- `world_positions[j]`: where joint `j` is in the current pose
+- `world_rotations[j]`: how joint `j` is oriented in the current pose
+- these are the posed world-space transforms from Part 1 FK
+
+???
+Tie this back to Part 1. Their FK code already converted local rotations into
+world rotations and world positions. Part 2 consumes those results rather than
+recomputing the skeleton hierarchy.
+
+---
+
+# The Skinning Transform
+
+Each joint gives vertex `i` one possible posed location.
+
+- start from the vertex's rest-pose offset from that joint
+- rotate that offset using the joint's posed world rotation
+- place the rotated offset at the joint's posed world position
+- combine the joint proposals using the skinning weights
+
+???
+Keep this conceptual. Do not write the final array expression on the slide:
+students should still decide how to combine `rest_vertices`, `rest_joints`,
+`world_rotations`, `world_positions`, and the weights in their implementation.
+One-hot skinning keeps the proposal from the most important joint. LBS takes
+the weighted average of all joint proposals.
 
 ---
 
@@ -259,6 +426,8 @@ vertex instead of forcing a single rigid owner.
 # Interim Checkpoint
 
 {{bullets: ../docs/interim.md#What To Submit}}
+
+[Submit on Moodle/VLE](https://www.vle.cam.ac.uk/mod/assign/view.php?id=19560071)
 
 ???
 Make this feel practical. The report is not separate from the coding work:

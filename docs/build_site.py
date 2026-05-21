@@ -130,20 +130,61 @@ def youtube_video_id(source: str) -> str:
     return match.group(1) if match else source
 
 
+def youtube_time_seconds(value: str) -> int | None:
+    value = value.strip()
+    if value.isdigit():
+        return int(value)
+
+    total = 0
+    for match in re.finditer(r"(\d+)([hms])", value):
+        amount = int(match.group(1))
+        unit = match.group(2)
+        if unit == "h":
+            total += amount * 3600
+        elif unit == "m":
+            total += amount * 60
+        else:
+            total += amount
+    return total if total else None
+
+
+def youtube_start_seconds(source: str) -> int | None:
+    match = re.search(r"[?&#](?:t|start)=([0-9hms]+)", source.strip())
+    if not match:
+        return None
+    return youtube_time_seconds(match.group(1))
+
+
+def youtube_watch_url(source: str) -> str:
+    video_id = youtube_video_id(source)
+    if start_seconds := youtube_start_seconds(source):
+        return f"https://youtu.be/{video_id}?t={start_seconds}"
+    return f"https://youtu.be/{video_id}"
+
+
 def youtube_embed(markdown: str) -> str:
     fields = split_directive_fields(markdown)
     if not fields or not fields[0]:
         raise SystemExit("YouTube directive is missing a video id")
 
     video_id = html.escape(youtube_video_id(fields[0]), quote=True)
+    query_parts = ["rel=0"]
+    if (start_seconds := youtube_start_seconds(fields[0])) is not None:
+        query_parts.append(f"start={start_seconds}")
+    query = "&".join(query_parts)
     title = fields[1] if len(fields) > 1 and fields[1] else "YouTube video"
     caption = fields[2] if len(fields) > 2 else ""
     title_attr = html.escape(strip_inline_markdown(title), quote=True)
-    caption_html = f"<figcaption>{format_inline(caption)}</figcaption>" if caption else ""
+    fallback_href = html.escape(youtube_watch_url(fields[0]), quote=True)
+    caption_parts = [format_inline(caption)] if caption else []
+    caption_parts.append(
+        f'<a href="{fallback_href}" target="_blank" rel="noreferrer">Open on YouTube</a>'
+    )
+    caption_html = f"<figcaption>{' '.join(caption_parts)}</figcaption>"
     return (
         '<figure class="doc-media-embed youtube-embed">'
         '<div class="doc-media-frame">'
-        f'<iframe src="https://www.youtube-nocookie.com/embed/{video_id}?rel=0" '
+        f'<iframe src="https://www.youtube-nocookie.com/embed/{video_id}?{query}" '
         f'title="{title_attr}" loading="lazy" allowfullscreen '
         'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; '
         'picture-in-picture; web-share"></iframe>'
@@ -709,8 +750,17 @@ def render_page(
 
 
 def indent(text: str, spaces: int) -> str:
+    """Indent rendered HTML without changing visible whitespace in code blocks."""
     prefix = " " * spaces
-    return "\n".join(prefix + line if line else line for line in text.splitlines())
+    lines: list[str] = []
+    in_pre = False
+    for line in text.splitlines():
+        lines.append(line if in_pre or not line else prefix + line)
+        if re.search(r"<pre\b", line) and not re.search(r"</pre>", line):
+            in_pre = True
+        if in_pre and re.search(r"</pre>", line):
+            in_pre = False
+    return "\n".join(lines)
 
 
 def build_site(output: Path, *, source_base_url: str | None = None) -> None:

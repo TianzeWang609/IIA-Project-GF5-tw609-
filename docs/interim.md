@@ -5,6 +5,8 @@ The interim report is the main checkpoint after Part 2.
 The goal is not to reward code volume. The goal is to show that you understand
 the pipeline and can produce and interpret results from your own code.
 
+[Submit the interim report and media on Moodle/VLE](https://www.vle.cam.ac.uk/mod/assign/view.php?id=19560071).
+
 ## Recommended Length
 
 - up to `5` pages of main report content
