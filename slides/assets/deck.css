@@ -394,7 +394,7 @@
 
 .slide-content h1 {
   position: relative;
-  max-width: 24ch;
+  max-width: none;
   height: var(--slide-title-height);
   margin: 0 0 0.9rem;
   overflow: visible;
@@ -541,7 +541,7 @@
 }
 
 .slide.has-media .slide-content h1 {
-  max-width: 31ch;
+  max-width: none;
   margin-bottom: 0.62rem;
 }
 
@@ -551,7 +551,7 @@
 }
 
 .slide.has-website-shot .slide-content h1 {
-  max-width: 31ch;
+  max-width: none;
   margin-bottom: 0.55rem;
 }
 
