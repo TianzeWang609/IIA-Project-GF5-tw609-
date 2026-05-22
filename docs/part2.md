@@ -79,6 +79,32 @@ vision. In this project it gives us:
 That makes it a good bridge from the simple Part-1 rig to a more realistic
 animation pipeline.
 
+## SMPL Model Setup
+
+SMPL model files are not included in the repository. To use the SMPL character
+in Part 2, download the standard SMPL body model from the
+[SMPL website](https://smpl.is.tue.mpg.de/index.html):
+
+1. register or sign in, and accept the SMPL model licence
+2. open the `Downloads` page
+3. choose `Download version 1.1.0 for Python 2.7 (female/male/neutral, 300 shape PCs)`
+4. unzip the archive
+5. copy or move the extracted `smpl/` folder into `assets/`
+
+The final layout should be:
+
+```text
+assets/smpl/
+assets/smpl/models/
+```
+
+You do not need SMPL-X, SMPL+H, MANO, or the Blender/Unreal/Maya plugin
+downloads for this coursework. You also do not need to run Python 2.7; this is
+just the official SMPL download label for the `.pkl` model files we use.
+
+The neutral model is enough for GF5; the male and female `.pkl` files are
+optional.
+
 ## Code Map
 
 The main files for this part are:

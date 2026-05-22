@@ -1529,11 +1529,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--smpl-model",
-        default=str(
-            project_root
-            / "assets/smpl/models/basicmodel_neutral_lbs_10_207_0_v1.1.0.pkl"
-        ),
-        help="Optional path to a neutral SMPL model file.",
+        default=str(project_root / "assets/smpl/models"),
+        help="Optional path to a SMPL model file or a directory of *.pkl model files.",
     )
     parser.add_argument(
         "--character-dir",

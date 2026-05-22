@@ -96,14 +96,15 @@ reference for cloning, committing, pulling, and pushing.
 
 ## SMPL Model Files
 
-SMPL model files are not included in the repository. If you have access to
-them, place them under:
+SMPL is needed for Part 2. The detailed download instructions are in
+[Part 2](part2.md#smpl-model-setup). The expected local folder layout is:
 
 ```text
+assets/smpl/
 assets/smpl/models/
 ```
 
-or start the viewer with an explicit model path:
+You can also start the viewer with an explicit model path:
 
 ```bash
 python viewer/asset_viewer.py --smpl-model /path/to/smpl/model.pkl

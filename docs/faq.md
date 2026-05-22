@@ -44,3 +44,14 @@ git push myrepo main
 
 Use your actual repository URL in place of
 `git@github.com:YOUR_USERNAME/YOUR_REPO.git`.
+
+## 3. Which SMPL Model Should I Download?
+
+See [Part 2: SMPL Model Setup](part2.md#smpl-model-setup) for the detailed
+download instructions. The short version is: use the standard SMPL body model
+download, unzip it, and place the extracted `smpl/` folder inside `assets/` so
+the model files appear under:
+
+```text
+assets/smpl/models/
+```
