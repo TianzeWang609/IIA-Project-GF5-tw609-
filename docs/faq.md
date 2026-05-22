@@ -55,3 +55,39 @@ the model files appear under:
 ```text
 assets/smpl/models/
 ```
+
+## 4. Why Does SMPL Not Load On Windows?
+
+If the blocky/proxy assets load but the real SMPL asset does not, and the
+`Use LBS` checkbox stays unavailable, check your PyTorch and NumPy versions.
+This Windows failure is tracked in
+[GitHub issue #1](https://github.com/CambridgeCVCourses/IIA-Project-GF5/issues/1).
+
+The reported broken environment mixed `torch 2.10.0+cpu` with `numpy 2.4.4`.
+That can produce PyTorch DLL loading errors and SMPLX-to-NumPy conversion
+errors. One confirmed fix is:
+
+```bash
+conda activate gf5
+python -m pip uninstall -y torch torchvision torchaudio
+python -m pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cpu
+python -m pip install numpy==1.26.4 --force-reinstall
+```
+
+Then test:
+
+```bash
+python -c "import torch; print(torch.__version__)"
+python -c "import numpy; print(numpy.__version__)"
+python -c "import smplx; print('smplx ok')"
+```
+
+Expected versions for this workaround are `torch 2.3.1+cpu` and
+`numpy 1.26.4`.
+
+If Windows also reports an OpenMP duplicate-runtime warning, run:
+
+```bat
+set KMP_DUPLICATE_LIB_OK=TRUE
+python viewer\asset_viewer.py --smpl-model assets\smpl\models\SMPL_MALE.pkl
+```

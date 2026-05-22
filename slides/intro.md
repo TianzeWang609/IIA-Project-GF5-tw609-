@@ -266,6 +266,7 @@ or Git workflow questions.
 - use two Git remotes if you want to keep custom code in your own repository
 - pull course updates from the teaching repo; push your work to your repo
 - SMPL model download details are in the Part 2 notes
+- Windows SMPL loading issue: see FAQ and GitHub issue `#1`
 
 ???
 Keep this brief. The FAQ page has the concrete commands, so the slide should

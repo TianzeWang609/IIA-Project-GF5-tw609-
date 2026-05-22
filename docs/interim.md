@@ -16,6 +16,7 @@ Submit the interim report and required results on Moodle:
 - use `11 pt` main text
 - use single line spacing
 - figures and tables included in that limit
+- references are not included in that limit
 - short appendix only if necessary
 
 ## What To Submit
