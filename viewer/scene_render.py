@@ -4,6 +4,7 @@ import math
 import os
 import shutil
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
@@ -924,7 +925,11 @@ class OffscreenAvatarRenderer:
     def __init__(self, width: int, height: int) -> None:
         if Image is None:
             raise RuntimeError("Pillow is required for final avatar rendering.") from PIL_IMPORT_ERROR
-        os.environ.setdefault("PYOPENGL_PLATFORM", "egl")
+        opengl_platform = os.environ.get("PYOPENGL_PLATFORM", "").strip().lower()
+        if sys.platform.startswith("linux") and not opengl_platform:
+            os.environ["PYOPENGL_PLATFORM"] = "egl"
+        elif sys.platform.startswith("win") and opengl_platform in {"win32", "windows", "nt"}:
+            os.environ.pop("PYOPENGL_PLATFORM", None)
         mesa_cache_dir = Path(os.environ.get("MESA_SHADER_CACHE_DIR", str(Path("/tmp") / "gf5_mesa_shader_cache")))
         try:
             mesa_cache_dir.mkdir(parents=True, exist_ok=True)
@@ -936,9 +941,11 @@ class OffscreenAvatarRenderer:
             import pyrender
             import trimesh
         except Exception as exc:  # pragma: no cover - depends on local OpenGL setup.
+            platform_hint = os.environ.get("PYOPENGL_PLATFORM") or "auto"
             raise RuntimeError(
                 "Final avatar rendering requires trimesh, pyrender, and a working OpenGL/EGL context. "
-                "Install the GF5 environment or set PYOPENGL_PLATFORM for this machine."
+                f"Install the GF5 environment or set PYOPENGL_PLATFORM for this machine "
+                f"(current: {platform_hint})."
             ) from exc
 
         self.width = int(width)
@@ -949,8 +956,11 @@ class OffscreenAvatarRenderer:
         try:
             self.renderer = pyrender.OffscreenRenderer(self.width, self.height)
         except Exception as exc:  # pragma: no cover - depends on local OpenGL setup.
+            platform_hint = os.environ.get("PYOPENGL_PLATFORM") or "auto"
             raise RuntimeError(
                 "Could not create a pyrender offscreen renderer. "
+                f"Current PYOPENGL_PLATFORM is {platform_hint}. "
+                "On Windows, leave PYOPENGL_PLATFORM unset and run from a normal desktop session. "
                 "On headless Linux, try PYOPENGL_PLATFORM=egl or check EGL/OpenGL availability."
             ) from exc
 
