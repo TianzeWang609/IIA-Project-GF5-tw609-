@@ -15,24 +15,32 @@ FORBIDDEN_PATHS = (
     ".viewer_imports",
     "4DDress_samples",
     "UP2You",
-    "assets/motions",
     "assets/smpl",
+    "libraries/motions/custom",
+    "libraries/poses",
+    "libraries/scenes",
     "docs/__pycache__",
-    "docs/part3.md",
     "docs/part3_notes.md",
     "docs/staff_runbook.md",
     "docs/staff_release_workflow.md",
     "docs/session_handoff.md",
     "exports",
     "human_character_demo",
-    "libraries",
     "nvdiffrast",
     "staff_tools",
     "viewer/__pycache__",
     "viewer/CONVENTIONS.md",
     "viewer/COORDINATES_AND_ENV.md",
     "viewer/reference_impl",
-    "viewer/scene_editor.py",
+)
+
+REQUIRED_PATHS = (
+    "docs/final_report.md",
+    "docs/part3.md",
+    "slides/part3.md",
+    "libraries/motions/preset",
+    "viewer/hy_motion_import.py",
+    "viewer/scene_web_server.py",
 )
 
 FORBIDDEN_GLOBS = (
@@ -40,6 +48,8 @@ FORBIDDEN_GLOBS = (
     "**/__pycache__/**",
     "**/*.pyc",
     "**/*.pkl",
+    "libraries/avatars/*.zip",
+    "libraries/avatars/**/*.zip",
     "**/*.pickle",
     "docs/*.html",
 )
@@ -79,7 +89,8 @@ IGNORED_TEXT_FILES = {
 }
 
 GENERATED_SITE_LINK_SOURCES = {
-    "slides/intro.md",
+    "slides/parts12.md",
+    "slides/part3.md",
 }
 
 
@@ -108,6 +119,10 @@ def audit(root: Path, *, max_file_mb: int) -> list[str]:
 
     if not root.exists():
         return [f"release root does not exist: {root}"]
+
+    for required in REQUIRED_PATHS:
+        if not (root / required).exists():
+            problems.append(f"missing required release path: {required}")
 
     for path in sorted(root.rglob("*")):
         if ".git" in path.relative_to(root).parts:
@@ -153,11 +168,15 @@ def check_links(root: Path, path: Path, text: str) -> list[str]:
         target, _fragment = urldefrag(link)
         if not target:
             continue
-        candidate = (path.parent / target).resolve()
+        relative = normalize(path.relative_to(root))
+        if target.startswith("/") and relative == "viewer/scene_editor_web/index.html":
+            candidate = (path.parent / target.lstrip("/")).resolve()
+        else:
+            candidate = (path.parent / target).resolve()
         if root not in candidate.parents and candidate != root:
-            problems.append(f"link escapes release tree in {normalize(path.relative_to(root))}: {link}")
+            problems.append(f"link escapes release tree in {relative}: {link}")
         elif not candidate.exists():
-            problems.append(f"missing link target in {normalize(path.relative_to(root))}: {link}")
+            problems.append(f"missing link target in {relative}: {link}")
     return problems
 
 
@@ -177,7 +196,10 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    problems = audit(Path(args.root), max_file_mb=args.max_file_mb)
+    problems = audit(
+        Path(args.root),
+        max_file_mb=args.max_file_mb,
+    )
     if problems:
         print("Student release audit failed:", file=sys.stderr)
         for problem in problems:

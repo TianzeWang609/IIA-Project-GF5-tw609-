@@ -1,0 +1,519 @@
+{
+  "format": "gf5_preset_motion_collection",
+  "version": 2,
+  "name": "GF5 Preset Motions",
+  "description": "Student-facing motion library organised by how each clip should be used with scene root paths.",
+  "generated_at": "2026-05-13T23:48:16",
+  "load_by_default": true,
+  "source_manifest": "staff_tools/motion_fallback/packs/hy_motion_palette/manifest.json",
+  "spec": "staff_tools/motion_generation/motion_library_specs/preset.json",
+  "output_dir": "libraries/motions/preset",
+  "categories": [
+    {
+      "id": "standing_gesture",
+      "label": "Standing / Gesture",
+      "description": "Use while the character stays at one place."
+    },
+    {
+      "id": "travel_loop",
+      "label": "Travel Loops",
+      "description": "Use while the scene path moves the character."
+    },
+    {
+      "id": "travel_transition",
+      "label": "Travel Transitions",
+      "description": "Use at the beginning or end of a path segment."
+    },
+    {
+      "id": "turn",
+      "label": "Turns",
+      "description": "Use while changing facing direction."
+    },
+    {
+      "id": "special",
+      "label": "Special Actions",
+      "description": "Use as fixed-place action beats or with original travel when noted."
+    }
+  ],
+  "motions": [
+    {
+      "id": "idle_stand",
+      "label": "Idle stand",
+      "file": "standing_gesture/idle_stand.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "idle_stand_01",
+      "category": "standing_gesture",
+      "category_label": "Standing / Gesture",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": true,
+      "turn_degrees": null,
+      "tags": [
+        "idle",
+        "hold",
+        "standing"
+      ],
+      "duration_sec": 2.966667
+    },
+    {
+      "id": "look_around",
+      "label": "Look around",
+      "file": "standing_gesture/look_around.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "look_around_01",
+      "category": "standing_gesture",
+      "category_label": "Standing / Gesture",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "gesture",
+        "look",
+        "standing"
+      ],
+      "duration_sec": 2.966667
+    },
+    {
+      "id": "wave_right",
+      "label": "Right-hand wave",
+      "file": "standing_gesture/wave_right.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "wave_right_01",
+      "category": "standing_gesture",
+      "category_label": "Standing / Gesture",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "gesture",
+        "wave",
+        "standing"
+      ],
+      "duration_sec": 2.966667
+    },
+    {
+      "id": "wave_both",
+      "label": "Two-hand wave",
+      "file": "standing_gesture/wave_both.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "wave_both_01",
+      "category": "standing_gesture",
+      "category_label": "Standing / Gesture",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "gesture",
+        "wave",
+        "standing"
+      ],
+      "duration_sec": 2.966667
+    },
+    {
+      "id": "point_forward",
+      "label": "Point forward",
+      "file": "standing_gesture/point_forward.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "point_forward_01",
+      "category": "standing_gesture",
+      "category_label": "Standing / Gesture",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "gesture",
+        "point",
+        "standing"
+      ],
+      "duration_sec": 2.966667
+    },
+    {
+      "id": "present_left",
+      "label": "Present to side",
+      "file": "standing_gesture/present_left.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "present_left_01",
+      "category": "standing_gesture",
+      "category_label": "Standing / Gesture",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "gesture",
+        "present",
+        "standing"
+      ],
+      "duration_sec": 2.966667
+    },
+    {
+      "id": "clap_twice",
+      "label": "Clap twice",
+      "file": "standing_gesture/clap_twice.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "clap_twice_01",
+      "category": "standing_gesture",
+      "category_label": "Standing / Gesture",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "gesture",
+        "clap",
+        "standing"
+      ],
+      "duration_sec": 2.966667
+    },
+    {
+      "id": "bow",
+      "label": "Bow",
+      "file": "standing_gesture/bow.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "bow_01",
+      "category": "standing_gesture",
+      "category_label": "Standing / Gesture",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "gesture",
+        "bow",
+        "standing"
+      ],
+      "duration_sec": 2.966667
+    },
+    {
+      "id": "walk_start",
+      "label": "Start walking",
+      "file": "travel_transition/walk_start.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "walk_forward_stop_01",
+      "category": "travel_transition",
+      "category_label": "Travel Transitions",
+      "root_contract": "scene_path",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "walk",
+        "start",
+        "transition"
+      ],
+      "duration_sec": 1.1
+    },
+    {
+      "id": "walk_cycle",
+      "label": "Walk cycle",
+      "file": "travel_loop/walk_cycle.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "walk_forward_stop_01",
+      "category": "travel_loop",
+      "category_label": "Travel Loops",
+      "root_contract": "scene_path",
+      "default_root_mode": "path",
+      "loopable": true,
+      "turn_degrees": null,
+      "tags": [
+        "walk",
+        "loop",
+        "travel"
+      ],
+      "duration_sec": 2.2
+    },
+    {
+      "id": "walk_stop",
+      "label": "Stop walking",
+      "file": "travel_transition/walk_stop.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "walk_forward_stop_01",
+      "category": "travel_transition",
+      "category_label": "Travel Transitions",
+      "root_contract": "scene_path",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "walk",
+        "stop",
+        "transition"
+      ],
+      "duration_sec": 1.416667
+    },
+    {
+      "id": "walk_backward",
+      "label": "Walk backward",
+      "file": "travel_loop/walk_backward.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "walk_backward_short_01",
+      "category": "travel_loop",
+      "category_label": "Travel Loops",
+      "root_contract": "scene_path",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "walk",
+        "backward",
+        "travel"
+      ],
+      "duration_sec": 3.966667
+    },
+    {
+      "id": "march_loop",
+      "label": "March loop",
+      "file": "travel_loop/march_loop.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "march_in_place_01",
+      "category": "travel_loop",
+      "category_label": "Travel Loops",
+      "root_contract": "scene_path",
+      "default_root_mode": "path",
+      "loopable": true,
+      "turn_degrees": null,
+      "tags": [
+        "march",
+        "loop",
+        "travel"
+      ],
+      "duration_sec": 3.966667
+    },
+    {
+      "id": "jog_loop",
+      "label": "Jog loop",
+      "file": "travel_loop/jog_loop.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "jog_in_place_01",
+      "category": "travel_loop",
+      "category_label": "Travel Loops",
+      "root_contract": "scene_path",
+      "default_root_mode": "path",
+      "loopable": true,
+      "turn_degrees": null,
+      "tags": [
+        "jog",
+        "loop",
+        "travel"
+      ],
+      "duration_sec": 3.966667
+    },
+    {
+      "id": "side_step_left",
+      "label": "Side step left",
+      "file": "travel_transition/side_step_left.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "step_left_01",
+      "category": "travel_transition",
+      "category_label": "Travel Transitions",
+      "root_contract": "scene_path",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "side-step",
+        "left",
+        "transition"
+      ],
+      "duration_sec": 3.966667
+    },
+    {
+      "id": "turn_left_90",
+      "label": "Turn left 90",
+      "file": "turn/turn_left_90.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "turn_left_90_01",
+      "category": "turn",
+      "category_label": "Turns",
+      "root_contract": "facing_only",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": -90,
+      "tags": [
+        "turn",
+        "left",
+        "facing"
+      ],
+      "duration_sec": 2.966667
+    },
+    {
+      "id": "turn_around",
+      "label": "Turn around",
+      "file": "turn/turn_around.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "turn_right_180_01",
+      "category": "turn",
+      "category_label": "Turns",
+      "root_contract": "facing_only",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": 180,
+      "tags": [
+        "turn",
+        "around",
+        "facing"
+      ],
+      "duration_sec": 3.966667
+    },
+    {
+      "id": "jump_twice",
+      "label": "Jump twice",
+      "file": "special/jump_twice.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "jump_twice_01",
+      "category": "special",
+      "category_label": "Special Actions",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "jump",
+        "whole-body",
+        "spot"
+      ],
+      "duration_sec": 3.966667
+    },
+    {
+      "id": "jumping_jacks",
+      "label": "Jumping jacks",
+      "file": "special/jumping_jacks.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "jumping_jacks_01",
+      "category": "special",
+      "category_label": "Special Actions",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "jump",
+        "exercise",
+        "spot"
+      ],
+      "duration_sec": 3.966667
+    },
+    {
+      "id": "squat_stand",
+      "label": "Squat and stand",
+      "file": "special/squat_stand.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "squat_stand_01",
+      "category": "special",
+      "category_label": "Special Actions",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "squat",
+        "whole-body",
+        "spot"
+      ],
+      "duration_sec": 3.966667
+    },
+    {
+      "id": "bend_down",
+      "label": "Bend down",
+      "file": "special/bend_down.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "bend_down_01",
+      "category": "special",
+      "category_label": "Special Actions",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "bend",
+        "whole-body",
+        "spot"
+      ],
+      "duration_sec": 3.966667
+    },
+    {
+      "id": "dance_arm_swing",
+      "label": "Dance arm swing",
+      "file": "special/dance_arm_swing.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "dance_arm_swing_01",
+      "category": "special",
+      "category_label": "Special Actions",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "dance",
+        "spot"
+      ],
+      "duration_sec": 3.966667
+    },
+    {
+      "id": "dance_side_step",
+      "label": "Side-step dance",
+      "file": "special/dance_side_step.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "dance_side_step_01",
+      "category": "special",
+      "category_label": "Special Actions",
+      "root_contract": "native_travel",
+      "default_root_mode": "native",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "dance",
+        "side-step",
+        "original-travel"
+      ],
+      "duration_sec": 3.966667
+    },
+    {
+      "id": "celebrate",
+      "label": "Celebrate",
+      "file": "special/celebrate.motion.json",
+      "source": "HY-Motion-1.0",
+      "source_class": "generated",
+      "source_clip_id": "celebrate_01",
+      "category": "special",
+      "category_label": "Special Actions",
+      "root_contract": "spot",
+      "default_root_mode": "path",
+      "loopable": false,
+      "turn_degrees": null,
+      "tags": [
+        "celebrate",
+        "whole-body",
+        "spot"
+      ],
+      "duration_sec": 3.966667
+    }
+  ]
+}

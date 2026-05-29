@@ -5,12 +5,18 @@ The interim report is the main checkpoint after Part 2.
 The goal is not to reward code volume. The goal is to show that you understand
 the pipeline and can produce and interpret results from your own code.
 
+Deadline: Friday 29 May 2026, 2pm.
+
+Submit the interim report and required results on Moodle:
+[https://www.vle.cam.ac.uk/mod/assign/view.php?id=19560071](https://www.vle.cam.ac.uk/mod/assign/view.php?id=19560071)
+
 ## Recommended Length
 
 - up to `5` pages of main report content
 - use `11 pt` main text
 - use single line spacing
 - figures and tables included in that limit
+- references are not included in that limit
 - short appendix only if necessary
 
 ## What To Submit

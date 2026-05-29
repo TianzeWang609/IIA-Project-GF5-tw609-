@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GF5 Motion Scene Editor</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-title">GF5 Motion Scene Editor</div>
+        </div>
+        <div class="actions">
+          <div class="history-actions" aria-label="History controls">
+            <button id="undoButton" class="icon-button small-icon-button" title="Undo" aria-label="Undo" disabled>
+              <span class="history-icon icon-undo"></span>
+            </button>
+            <button id="redoButton" class="icon-button small-icon-button" title="Redo" aria-label="Redo" disabled>
+              <span class="history-icon icon-redo"></span>
+            </button>
+          </div>
+          <input id="sceneNameInput" class="text-input compact" value="group_greeting_scene" />
+          <button id="saveButton">Save</button>
+          <select id="sceneSelect" class="select compact"></select>
+          <button id="loadButton">Load</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="sidebar">
+          <section>
+            <div class="section-title">Motion Library</div>
+            <input id="motionFilter" class="text-input full-width" placeholder="Filter motions" />
+            <div id="motionList" class="motion-list"></div>
+            <div class="library-actions">
+              <button id="importHyMotionButton" class="secondary-action tool-button" type="button" title="Import HY-Motion FBX and prompt">
+                <span class="upload-icon" aria-hidden="true"></span>
+                <span class="tool-button-label">Import HY-Motion</span>
+              </button>
+              <input id="hyMotionImportInput" type="file" accept=".txt,.fbx" multiple hidden />
+            </div>
+            <div class="import-note">Select the matching `.fbx` and `.txt` files with the same filename.</div>
+            <div id="hyMotionImportStatus" class="import-status" role="status" aria-live="polite"></div>
+            <div id="motionPreviewPanel" class="motion-preview-panel"></div>
+          </section>
+        </aside>
+
+        <div id="libraryResizeHandle" class="panel-resizer" role="separator" aria-label="Resize motion library" aria-orientation="vertical" tabindex="0"></div>
+
+        <section class="main-panel">
+          <div class="stage-wrap">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Stage</div>
+              </div>
+              <div class="stage-tools">
+                <div class="stage-view-controls" aria-label="Stage view controls">
+                  <button id="stageZoomOutButton" class="icon-button small-icon-button" title="Zoom out" aria-label="Zoom out">
+                    <span class="stage-tool-icon icon-zoom-out"></span>
+                  </button>
+                  <button id="stageZoomInButton" class="icon-button small-icon-button" title="Zoom in" aria-label="Zoom in">
+                    <span class="stage-tool-icon icon-zoom-in"></span>
+                  </button>
+                  <button id="stageFitButton" class="icon-button small-icon-button" title="Fit stage view" aria-label="Fit stage view">
+                    <span class="stage-tool-icon icon-fit-view"></span>
+                  </button>
+                  <span id="stageZoomReadout" class="stage-zoom-readout">100%</span>
+                </div>
+              </div>
+            </div>
+            <svg id="stageSvg" class="stage" viewBox="0 0 900 430" aria-label="Top-down stage editor"></svg>
+          </div>
+
+          <div id="timelineResizeHandle" class="panel-resizer panel-resizer-horizontal" role="separator" aria-label="Resize timeline" aria-orientation="horizontal" tabindex="0"></div>
+
+          <div class="timeline-wrap">
+            <div class="panel-header timeline-header">
+              <div class="timeline-head-label">
+                <div class="panel-title">Timeline</div>
+                <div class="transport-buttons">
+                  <button id="startButton" class="icon-button" title="Jump to start" aria-label="Jump to start">
+                    <span class="transport-icon icon-start"></span>
+                  </button>
+                  <button id="playButton" class="icon-button primary" title="Play/Pause" aria-label="Play or pause">
+                    <span id="playIcon" class="transport-icon icon-play"></span>
+                  </button>
+                </div>
+              </div>
+              <div class="timeline-tools">
+                <button id="addCharacterButton">Add Avatar</button>
+                <button id="addWaypointButton">Add Waypoint</button>
+                <button id="deleteSelectionButton" class="icon-button small-icon-button danger-icon-button" title="Delete selected item" aria-label="Delete selected item" disabled>
+                  <span class="trash-icon"></span>
+                </button>
+                <div id="timeReadout" class="time-readout">0.00 / 8.00s</div>
+                <label class="slider-control">
+                  <span>Duration</span>
+                  <input id="durationInput" class="control-slider" type="range" min="1" max="60" step="0.5" value="8" />
+                  <output id="durationReadout">8.0s</output>
+                </label>
+                <label class="slider-control">
+                  <span>Scale</span>
+                  <input id="zoomInput" class="control-slider" type="range" min="40" max="220" step="5" value="90" />
+                  <output id="zoomReadout">90 px/s</output>
+                </label>
+              </div>
+            </div>
+            <div id="timelineScroller" class="timeline-scroller">
+              <svg id="timelineSvg" class="timeline" aria-label="Motion timeline"></svg>
+            </div>
+          </div>
+        </section>
+
+        <div id="inspectorResizeHandle" class="panel-resizer" role="separator" aria-label="Resize inspector" aria-orientation="vertical" tabindex="0"></div>
+
+        <aside class="inspector">
+          <div class="preview-export-panel">
+            <div class="section-title preview-title">Preview & Export</div>
+            <div id="exportPanel"></div>
+          </div>
+          <div id="rightRailResizeHandle" class="panel-resizer panel-resizer-horizontal inspector-split-resizer" role="separator" aria-label="Resize preview and inspector" aria-orientation="horizontal" tabindex="0"></div>
+          <div class="inspector-panel">
+            <div class="section-title">Inspector</div>
+            <div id="inspectorContent"></div>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="status-bar">
+        <div class="status-label">Warnings</div>
+        <div id="warningList" class="warning-list status-warning-list" role="status" aria-live="polite"></div>
+      </footer>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

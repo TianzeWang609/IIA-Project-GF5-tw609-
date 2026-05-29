@@ -45,6 +45,7 @@ class SmplModelData:
     ground_translation: Vec3f
     parents: tuple[int, ...]
     joint_names: tuple[str, ...]
+    skinning_setup_error: str | None = None
 
 
 def rotate_points_to_viewer(points: np.ndarray) -> np.ndarray:
@@ -141,7 +142,18 @@ def load_smpl_model_data(model_path: str | Path) -> SmplModelData:
     rest_vertices = rotate_points_to_viewer(rest_vertices_smpl)
     rest_joints = rotate_points_to_viewer(rest_joints_smpl)
     skinning_weights = model.lbs_weights.detach().cpu().numpy().astype(np.float32)
-    one_hot_skinning_weights = make_one_hot_skinning_weights(skinning_weights)
+    skinning_setup_error = None
+    try:
+        one_hot_skinning_weights = validate_one_hot_skinning_weights(
+            make_one_hot_skinning_weights(skinning_weights),
+            expected_shape=skinning_weights.shape,
+        )
+    except Exception as exc:
+        one_hot_skinning_weights = np.zeros_like(skinning_weights, dtype=np.float32)
+        skinning_setup_error = (
+            "Part 2 one-hot skinning is not ready: "
+            f"{format_exception_summary(exc)}"
+        )
     ground_translation = np.asarray([0.0, 0.0, -float(rest_vertices[:, 2].min())], dtype=np.float32)
     faces = np.asarray(model.faces, dtype=np.uint32)
     parents = tuple(int(parent) for parent in model.parents.detach().cpu().numpy().tolist())
@@ -157,11 +169,56 @@ def load_smpl_model_data(model_path: str | Path) -> SmplModelData:
         ground_translation=ground_translation,
         parents=parents,
         joint_names=SMPL_24_PROFILE.joint_names,
+        skinning_setup_error=skinning_setup_error,
     )
 
 
 def make_one_hot_skinning_weights(weights: np.ndarray) -> np.ndarray:
     return get_part2_skinning_module().make_one_hot_skinning_weights(weights)
+
+
+def format_exception_summary(exc: Exception) -> str:
+    message = str(exc).strip()
+    if message:
+        return message
+    return exc.__class__.__name__
+
+
+def validate_one_hot_skinning_weights(
+    weights: np.ndarray,
+    *,
+    expected_shape: tuple[int, int],
+) -> np.ndarray:
+    weights = np.asarray(weights, dtype=np.float32)
+    if weights.shape != expected_shape:
+        raise ValueError(
+            f"make_one_hot_skinning_weights returned shape {weights.shape}; "
+            f"expected {expected_shape}."
+        )
+    if not np.all(np.isfinite(weights)):
+        raise ValueError("make_one_hot_skinning_weights returned non-finite values.")
+    if not np.allclose(weights.sum(axis=1), 1.0, atol=1e-4):
+        raise ValueError("one-hot rows must sum to 1.")
+    binary_mask = np.isclose(weights, 0.0, atol=1e-4) | np.isclose(weights, 1.0, atol=1e-4)
+    if not np.all(binary_mask):
+        raise ValueError("one-hot weights must contain only 0 or 1 values.")
+    return weights.astype(np.float32)
+
+
+def validate_skinned_vertices(vertices: np.ndarray, *, expected_shape: tuple[int, int]) -> np.ndarray:
+    vertices = np.asarray(vertices, dtype=np.float32)
+    if vertices.shape != expected_shape:
+        raise ValueError(
+            f"skin_smpl_mesh returned shape {vertices.shape}; expected {expected_shape}."
+        )
+    if not np.all(np.isfinite(vertices)):
+        raise ValueError("skin_smpl_mesh returned non-finite vertex positions.")
+    if float(np.ptp(vertices, axis=0).max()) < 1e-5:
+        raise ValueError(
+            "skin_smpl_mesh returned a collapsed mesh; implement the vertex transforms "
+            "instead of returning zeros."
+        )
+    return vertices.astype(np.float32)
 
 
 def get_skinning_weights(
@@ -183,11 +240,14 @@ def skin_smpl_mesh(
     *,
     use_blended_weights: bool,
 ) -> np.ndarray:
-    return get_part2_skinning_module().skin_smpl_mesh(
-        model_data,
-        world_rotations,
-        world_positions,
-        use_blended_weights=use_blended_weights,
+    return validate_skinned_vertices(
+        get_part2_skinning_module().skin_smpl_mesh(
+            model_data,
+            world_rotations,
+            world_positions,
+            use_blended_weights=use_blended_weights,
+        ),
+        expected_shape=np.asarray(model_data.rest_vertices).shape,
     )
 
 

@@ -32,23 +32,43 @@ class Page:
     eyebrow: str
 
 
+@dataclass(frozen=True)
+class SlideDeck:
+    source: str
+    output: str
+    nav_label: str
+
+
+SLIDE_DECKS = [
+    SlideDeck("../slides/parts12.md", "parts12-slides.html", "Parts 1&2"),
+    SlideDeck("../slides/part3.md", "part3-slides.html", "Part 3"),
+]
+
 PAGES = [
-    Page("project_overview.md", "index.html", "Overview", "Parts 1 and 2 release"),
+    Page("project_overview.md", "index.html", "Overview", "Student release"),
     Page("setup.md", "setup.html", "Setup", "Before coding"),
     Page("part1.md", "part1.html", "Part 1", "Part 1"),
     Page("part2.md", "part2.html", "Part 2", "Part 2"),
-    Page("interim.md", "interim.html", "Interim", "Checkpoint"),
-    Page("part3_placeholder.md", "part3.html", "Part 3", "Coming later"),
+    Page("interim.md", "interim.html", "Interim Report", "Checkpoint"),
+    Page("part3.md", "part3.html", "Part 3", "Group project"),
+    Page("scene_editor.md", "scene_editor.html", "Scene Editor", "Part 3 tool"),
+    Page("showcase.md", "showcase.html", "Showcase", "Final session"),
+    Page("final_report.md", "final_report.html", "Final Report", "Final submission"),
+    Page("faq.md", "faq.html", "FAQ", "Common questions"),
     Page("references.md", "references.html", "References", "Further reading"),
 ]
 
-SOURCE_TO_OUTPUT = {page.source: page.output for page in PAGES}
-SOURCE_TO_OUTPUT.update(
-    {
-        "../slides/intro.md": "intro.html",
-        "slides/intro.md": "intro.html",
-    }
-)
+
+def build_source_to_output() -> dict[str, str]:
+    mapping = {page.source: page.output for page in PAGES}
+    for deck in SLIDE_DECKS:
+        mapping[deck.source] = deck.output
+        if deck.source.startswith("../"):
+            mapping[deck.source[3:]] = deck.output
+    return mapping
+
+
+SOURCE_TO_OUTPUT = build_source_to_output()
 
 
 @dataclass(frozen=True)
@@ -130,20 +150,61 @@ def youtube_video_id(source: str) -> str:
     return match.group(1) if match else source
 
 
+def youtube_time_seconds(value: str) -> int | None:
+    value = value.strip()
+    if value.isdigit():
+        return int(value)
+
+    total = 0
+    for match in re.finditer(r"(\d+)([hms])", value):
+        amount = int(match.group(1))
+        unit = match.group(2)
+        if unit == "h":
+            total += amount * 3600
+        elif unit == "m":
+            total += amount * 60
+        else:
+            total += amount
+    return total if total else None
+
+
+def youtube_start_seconds(source: str) -> int | None:
+    match = re.search(r"[?&#](?:t|start)=([0-9hms]+)", source.strip())
+    if not match:
+        return None
+    return youtube_time_seconds(match.group(1))
+
+
+def youtube_watch_url(source: str) -> str:
+    video_id = youtube_video_id(source)
+    if start_seconds := youtube_start_seconds(source):
+        return f"https://youtu.be/{video_id}?t={start_seconds}"
+    return f"https://youtu.be/{video_id}"
+
+
 def youtube_embed(markdown: str) -> str:
     fields = split_directive_fields(markdown)
     if not fields or not fields[0]:
         raise SystemExit("YouTube directive is missing a video id")
 
     video_id = html.escape(youtube_video_id(fields[0]), quote=True)
+    query_parts = ["rel=0"]
+    if (start_seconds := youtube_start_seconds(fields[0])) is not None:
+        query_parts.append(f"start={start_seconds}")
+    query = "&".join(query_parts)
     title = fields[1] if len(fields) > 1 and fields[1] else "YouTube video"
     caption = fields[2] if len(fields) > 2 else ""
     title_attr = html.escape(strip_inline_markdown(title), quote=True)
-    caption_html = f"<figcaption>{format_inline(caption)}</figcaption>" if caption else ""
+    fallback_href = html.escape(youtube_watch_url(fields[0]), quote=True)
+    caption_parts = [format_inline(caption)] if caption else []
+    caption_parts.append(
+        f'<a href="{fallback_href}" target="_blank" rel="noreferrer">Open on YouTube</a>'
+    )
+    caption_html = f"<figcaption>{' '.join(caption_parts)}</figcaption>"
     return (
         '<figure class="doc-media-embed youtube-embed">'
         '<div class="doc-media-frame">'
-        f'<iframe src="https://www.youtube-nocookie.com/embed/{video_id}?rel=0" '
+        f'<iframe src="https://www.youtube-nocookie.com/embed/{video_id}?{query}" '
         f'title="{title_attr}" loading="lazy" allowfullscreen '
         'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; '
         'picture-in-picture; web-share"></iframe>'
@@ -153,10 +214,38 @@ def youtube_embed(markdown: str) -> str:
     )
 
 
+def local_video_embed(markdown: str) -> str:
+    fields = split_directive_fields(markdown)
+    if not fields or not fields[0]:
+        raise SystemExit("Video directive is missing a source path")
+
+    source = fields[0]
+    caption = fields[1] if len(fields) > 1 else ""
+    options = {field.lower() for field in fields[2:]}
+    src = html.escape(rewrite_href(source), quote=True)
+    source_type = "video/mp4" if source.lower().split("?", 1)[0].endswith(".mp4") else ""
+    type_attr = f' type="{source_type}"' if source_type else ""
+    autoplay_attr = " autoplay muted" if "autoplay" in options else ""
+    loop_attr = " loop" if "loop" in options else ""
+    caption_html = f"<figcaption>{format_inline(caption)}</figcaption>" if caption else ""
+    fallback = f'<a href="{src}">Open video</a>'
+    return (
+        '<figure class="doc-media-embed local-video-embed">'
+        '<div class="doc-media-frame">'
+        f'<video controls preload="metadata" playsinline{autoplay_attr}{loop_attr}>'
+        f'<source src="{src}"{type_attr}>'
+        f"{fallback}"
+        "</video>"
+        "</div>"
+        f"{caption_html}"
+        "</figure>"
+    )
+
+
 SCHEDULE_COLUMNS = [
     ("Tue", "am", "Tue AM", "11-13"),
     ("Fri", "am", "Fri AM", "9-11"),
-    ("Fri", "pm", "Fri PM", "14-16 / 4pm"),
+    ("Fri", "pm", "Fri PM", "14-16 / due"),
 ]
 SCHEDULE_WEEKS = [
     {
@@ -179,12 +268,12 @@ SCHEDULE_WEEKS = [
         "dates": "25-29 May",
         "am": {
             "Tue": [("help", "Help", "11-13, BE454")],
-            "Fri": [("help", "Help", "9-11, BE454")],
+            "Fri": [("help", "Help", "9-10, BE454")],
         },
         "pm": {
             "Fri": [
                 ("mandatory", "Mandatory", "14-16, LR11"),
-                ("deadline", "Interim due", "4pm"),
+                ("deadline", "Interim due", "2pm"),
             ]
         },
     },
@@ -201,12 +290,10 @@ SCHEDULE_WEEKS = [
         "label": "Week 4",
         "dates": "8-12 Jun",
         "am": {
-            "Tue": [("presentation", "Final presentation", "11-13, LR5")],
-            "Fri": [("help", "Help", "9-11, BE454")],
+            "Tue": [("presentation", "Showcase", "11-13, LT6")],
         },
         "pm": {
             "Fri": [
-                ("mandatory", "Mandatory", "14-16, LR11"),
                 ("deadline", "Final report due", "4pm; animation due"),
             ]
         },
@@ -219,9 +306,22 @@ SCHEDULE_CALENDAR_NOTE = (
 
 
 def schedule_calendar_embed(markdown: str = "") -> str:
-    def render_event(kind: str, title: str, meta: str) -> str:
+    fields = split_directive_fields(markdown)
+    highlight_updates = any(field in {"updates", "highlight-updates"} for field in fields[1:])
+    highlighted_events = {
+        ("Week 2", "Fri", "am", "help", "Help", "9-10, BE454"),
+        ("Week 2", "Fri", "pm", "deadline", "Interim due", "2pm"),
+        ("Week 4", "Tue", "am", "presentation", "Showcase", "11-13, LT6"),
+        ("Week 4", "Fri", "pm", "deadline", "Final report due", "4pm; animation due"),
+    }
+    highlighted_empty_cells = {("Week 4", "Fri", "am")}
+
+    def render_event(kind: str, title: str, meta: str, *, highlighted: bool = False) -> str:
+        classes = ["calendar-pin", f"is-{html.escape(kind, quote=True)}"]
+        if highlighted:
+            classes.append("is-highlighted")
         return (
-            f'<span class="calendar-pin is-{html.escape(kind, quote=True)}">'
+            f'<span class="{" ".join(classes)}">'
             '<span class="pin-dot" aria-hidden="true"></span>'
             "<span>"
             f"<strong>{html.escape(title)}</strong>"
@@ -241,11 +341,23 @@ def schedule_calendar_embed(markdown: str = "") -> str:
         ]
         for day, slot, _label, _meta in SCHEDULE_COLUMNS:
             events = week.get(slot, {}).get(day, [])
-            content = "".join(render_event(*event) for event in events)
+            content = "".join(
+                render_event(
+                    *event,
+                    highlighted=highlight_updates
+                    and (week["label"], day, slot, *event) in highlighted_events,
+                )
+                for event in events
+            )
             empty_class = " is-empty" if not content else ""
             multiple_class = " has-multiple" if len(events) > 1 else ""
+            highlight_class = (
+                " is-highlighted-empty"
+                if highlight_updates and (week["label"], day, slot) in highlighted_empty_cells
+                else ""
+            )
             cells.append(
-                f'<td class="calendar-cell{empty_class}{multiple_class}">'
+                f'<td class="calendar-cell{empty_class}{multiple_class}{highlight_class}">'
                 f'<div class="calendar-cell-inner">{content}</div>'
                 "</td>"
             )
@@ -258,7 +370,7 @@ def schedule_calendar_embed(markdown: str = "") -> str:
             ("mandatory", "Mandatory"),
             ("help", "Optional help"),
             ("deadline", "Deadline"),
-            ("presentation", "Presentation"),
+            ("presentation", "Showcase"),
         ]
     )
     return (
@@ -273,11 +385,44 @@ def schedule_calendar_embed(markdown: str = "") -> str:
             for _day, _slot, label, meta in SCHEDULE_COLUMNS
         )
         + "</tr></thead>"
-        "<tbody>"
+        + "<tbody>"
         + "".join(rows)
         + "</tbody></table>"
-        f'<p class="calendar-note">{html.escape(SCHEDULE_CALENDAR_NOTE)}</p>'
-        "</section>"
+        + (
+            '<p class="calendar-change-note">'
+            "<strong>Updated:</strong> Fri 29 May help is 9-10; interim report and results are due 2pm; "
+            "Tue 9 Jun showcase is in LT6; Fri 12 Jun has no help or mandatory session."
+            "</p>"
+            if highlight_updates
+            else ""
+        )
+        + f'<p class="calendar-note">{html.escape(SCHEDULE_CALENDAR_NOTE)}</p>'
+        + "</section>"
+    )
+
+
+def reports_overview_embed(_markdown: str = "") -> str:
+    interim_href = html.escape(rewrite_href("interim.md"), quote=True)
+    final_href = html.escape(rewrite_href("final_report.md"), quote=True)
+    items = [
+        (
+            f'<a href="{interim_href}">Interim Report</a>',
+            "due after Part 2; individual report, code, videos, and comparison figures.",
+        ),
+        (
+            f'<a href="{final_href}">Final Report</a>',
+            "due after Part 3; each student submits a PDF with a shared group-work section and their own individual contribution section, plus the group animation result files.",
+        ),
+    ]
+
+    rendered_items = "".join(
+        f"<li><strong>{label}</strong>: {html.escape(description)}</li>"
+        for label, description in items
+    )
+    return (
+        "<p>There are two report checkpoints in the project.</p>"
+        f"<ul>{rendered_items}</ul>"
+        "<p>Each report page gives the exact structure, evidence, and submission requirements.</p>"
     )
 
 
@@ -361,8 +506,14 @@ class MarkdownRenderer:
             if mode == "youtube":
                 self.out.append(youtube_embed(payload))
                 return
+            if mode == "video":
+                self.out.append(local_video_embed(payload))
+                return
             if mode == "schedule-calendar":
                 self.out.append(schedule_calendar_embed(payload))
+                return
+            if mode == "reports-overview":
+                self.out.append(reports_overview_embed(payload))
                 return
             raise SystemExit(f"Unknown site directive: {mode}")
 
@@ -489,6 +640,8 @@ class MarkdownRenderer:
                 "assessment-at-a-glance": "assessment-list",
                 "animation-and-rigging": "reference-list",
                 "recommended-starting-points": "reference-list",
+                "useful-materials": "reference-list",
+                "tools-used-in-gf5": "reference-list",
             }
             if self.list_type == "ul" and self.current_heading_id in list_classes:
                 list_class = f' class="{list_classes[self.current_heading_id]}"'
@@ -515,7 +668,12 @@ class MarkdownRenderer:
         self.close_blocks()
 
 
-def render_nav(current: Page | None, *, slides_active: bool = False) -> str:
+def render_nav(
+    current: Page | None,
+    *,
+    slides_active: bool = False,
+    current_slide_output: str | None = None,
+) -> str:
     def nav_link(label: str, href: str, active: bool = False, class_name: str = "") -> str:
         aria = ' aria-current="page"' if active else ""
         class_attr = f' class="{html.escape(class_name, quote=True)}"' if class_name else ""
@@ -528,6 +686,13 @@ def render_nav(current: Page | None, *, slides_active: bool = False) -> str:
     material_links = "\n".join(
         nav_link(page.nav_label, page.output, page == current) for page in material_pages
     )
+    slide_decks = SLIDE_DECKS
+    active_slide_output = current_slide_output or (slide_decks[0].output if slide_decks else "")
+    slides_class = "nav-dropdown is-active" if slides_active else "nav-dropdown"
+    slide_links = "\n".join(
+        nav_link(deck.nav_label, deck.output, slides_active and deck.output == active_slide_output)
+        for deck in slide_decks
+    )
     github_href = html.escape(GITHUB_REPOSITORY_URL, quote=True)
     links = [
         nav_link(overview.nav_label, overview.output, current == overview),
@@ -537,7 +702,12 @@ def render_nav(current: Page | None, *, slides_active: bool = False) -> str:
 {material_links}
             </div>
           </div>""",
-        nav_link("Slides", "intro.html", slides_active),
+        f"""          <div class="{slides_class}" data-nav-dropdown>
+            <button class="nav-dropdown-trigger" type="button" aria-haspopup="true" aria-expanded="false" data-nav-dropdown-trigger>Slides</button>
+            <div class="nav-dropdown-menu" data-nav-dropdown-menu>
+{slide_links}
+            </div>
+          </div>""",
         (
             f'          <a class="nav-github-button" href="{github_href}" '
             'target="_blank" rel="noreferrer">GitHub</a>'
@@ -547,7 +717,7 @@ def render_nav(current: Page | None, *, slides_active: bool = False) -> str:
 
 
 def render_release_summary() -> str:
-    return """      <section class="release-strip" aria-label="Release summary">
+    return f"""      <section class="release-strip" aria-label="Release summary">
         <div class="metric">
           <strong>Part 1</strong>
           <span>Forward kinematics and a saved custom motion.</span>
@@ -557,12 +727,8 @@ def render_release_summary() -> str:
           <span>Skinning weights, one-hot binding, and LBS comparison.</span>
         </div>
         <div class="metric">
-          <strong>Interim</strong>
-          <span>Code, videos, figures, and the report checkpoint.</span>
-        </div>
-        <div class="metric">
           <strong>Part 3</strong>
-          <span>Public placeholder kept ready for the later brief.</span>
+          <span>Group character animation, motion planning, and final video.</span>
         </div>
       </section>
 """
@@ -574,7 +740,7 @@ def render_actions(page: Page) -> str:
         return f"""          <div class="actions">
             <a class="button primary" href="{github_href}" target="_blank" rel="noreferrer">GitHub codebase</a>
             <a class="button" href="setup.html">Start setup</a>
-            <a class="button" href="intro.html">Intro slides</a>
+            <a class="button" href="parts12-slides.html">Open slides</a>
           </div>
 """
     index = PAGES.index(page)
@@ -650,6 +816,7 @@ def render_page(
     html_title = SITE_TITLE if title == SITE_TITLE else f"{title} | {SITE_TITLE}"
     release_summary = render_release_summary() if page.output == "index.html" else ""
     toc = render_toc(doc)
+    article_class = "doc-content faq-content" if page.output == "faq.html" else "doc-content"
     if source_base_url:
         source_href = f"{source_base_url.rstrip('/')}/{page.source}"
     elif source_relative_base and source_relative_base != ".":
@@ -682,9 +849,10 @@ def render_page(
     </header>
 
     <main id="main" class="page doc-page">
-{render_hero(page, doc)}{release_summary}
+{render_hero(page, doc)}
       <div class="doc-shell">
-{toc}        <article class="doc-content">
+{toc}        <article class="{article_class}">
+{release_summary}
 {indent(doc.body, 10)}
         </article>
       </div>
@@ -709,11 +877,24 @@ def render_page(
 
 
 def indent(text: str, spaces: int) -> str:
+    """Indent rendered HTML without changing visible whitespace in code blocks."""
     prefix = " " * spaces
-    return "\n".join(prefix + line if line else line for line in text.splitlines())
+    lines: list[str] = []
+    in_pre = False
+    for line in text.splitlines():
+        lines.append(line if in_pre or not line else prefix + line)
+        if re.search(r"<pre\b", line) and not re.search(r"</pre>", line):
+            in_pre = True
+        if in_pre and re.search(r"</pre>", line):
+            in_pre = False
+    return "\n".join(lines)
 
 
-def build_site(output: Path, *, source_base_url: str | None = None) -> None:
+def build_site(
+    output: Path,
+    *,
+    source_base_url: str | None = None,
+) -> None:
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     assets_output = output / "assets"
@@ -753,7 +934,10 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    build_site(args.output.resolve(), source_base_url=args.source_base_url)
+    build_site(
+        args.output.resolve(),
+        source_base_url=args.source_base_url,
+    )
 
 
 if __name__ == "__main__":

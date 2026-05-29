@@ -394,7 +394,7 @@
 
 .slide-content h1 {
   position: relative;
-  max-width: 24ch;
+  max-width: none;
   height: var(--slide-title-height);
   margin: 0 0 0.9rem;
   overflow: visible;
@@ -502,6 +502,28 @@
   font-weight: 900;
 }
 
+.slide-content ol.plain-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.38rem;
+  max-width: 56ch;
+  padding-left: 1.65rem;
+  list-style: decimal;
+  counter-reset: none;
+}
+
+.slide-content ol.plain-list > li {
+  min-height: 0;
+  padding: 0 0 0 0.2rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.slide-content ol.plain-list > li::before {
+  content: none;
+}
+
 .slide-content li + li {
   margin-top: 0;
 }
@@ -541,7 +563,7 @@
 }
 
 .slide.has-media .slide-content h1 {
-  max-width: 31ch;
+  max-width: none;
   margin-bottom: 0.62rem;
 }
 
@@ -551,7 +573,7 @@
 }
 
 .slide.has-website-shot .slide-content h1 {
-  max-width: 31ch;
+  max-width: none;
   margin-bottom: 0.55rem;
 }
 
@@ -602,7 +624,8 @@
   box-shadow: 0 12px 26px rgb(30 42 50 / 16%);
 }
 
-.media-frame iframe {
+.media-frame iframe,
+.media-frame video {
   display: block;
   width: 100%;
   height: 100%;
@@ -842,6 +865,18 @@
   line-height: 1.35;
 }
 
+.calendar-change-note {
+  margin: 0.45rem 0 0;
+  padding: 0.38rem 0.5rem;
+  border: 1px solid rgb(180 123 0 / 30%);
+  border-radius: 5px;
+  background: rgb(180 123 0 / 8%);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
 .calendar-table {
   width: var(--calendar-table-width);
   min-width: var(--calendar-table-width);
@@ -949,6 +984,26 @@
   background: #fbfdfe;
 }
 
+.calendar-cell.is-highlighted-empty {
+  background: rgb(180 123 0 / 7%);
+  box-shadow: inset 0 0 0 2px rgb(180 123 0 / 34%);
+}
+
+.calendar-cell.is-highlighted-empty .calendar-cell-inner::before {
+  content: "No session";
+  display: inline-grid;
+  width: var(--calendar-pin-width);
+  min-width: var(--calendar-pin-width);
+  max-width: var(--calendar-pin-width);
+  min-height: 2.1rem;
+  place-items: center;
+  border: 1px dashed rgb(180 123 0 / 45%);
+  border-radius: 5px;
+  color: #6f4a00;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
 .calendar-pin {
   --pin-color: var(--teal);
   box-sizing: border-box;
@@ -1020,6 +1075,12 @@
   background: rgb(180 123 0 / 8%);
 }
 
+.calendar-pin.is-highlighted {
+  box-shadow:
+    0 0 0 2px rgb(180 123 0 / 40%),
+    0 8px 14px rgb(30 42 50 / 10%);
+}
+
 .calendar-legend .calendar-pin {
   display: inline-grid;
   grid-template-columns: 0.56rem auto;
@@ -1065,6 +1126,75 @@
   background: #fff;
 }
 
+.slide[data-title="Demo: Show The Viewer"] .slide-fit {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(360px, 1.18fr);
+  column-gap: 1.4rem;
+  align-items: start;
+}
+
+.slide[data-title="Demo: Show The Viewer"] .slide-fit > h1 {
+  grid-column: 1 / -1;
+}
+
+.slide[data-title="Demo: Show The Viewer"] .slide-fit > ul,
+.slide[data-title="Demo: Show The Viewer"] .slide-fit > p {
+  grid-column: 1;
+}
+
+.slide[data-title="Demo: Show The Viewer"] .slide-figure {
+  grid-column: 2;
+  grid-row: 2 / span 3;
+  max-width: none;
+  margin: 0.1rem 0 0;
+}
+
+.slide[data-title="Demo: Show The Viewer"] .slide-figure img {
+  max-height: 25rem;
+  object-fit: contain;
+}
+
+.slide[data-title="Custom Avatars"] .slide-fit {
+  position: relative;
+  min-height: 28rem;
+  padding-right: 24rem;
+}
+
+.slide[data-title="Custom Avatars"] .slide-fit > h1 {
+  max-width: 30rem;
+}
+
+.slide[data-title="Custom Avatars"] .slide-fit > p,
+.slide[data-title="Custom Avatars"] .slide-fit > ul {
+  max-width: 27rem;
+}
+
+.slide[data-title="Custom Avatars"] .slide-figure {
+  position: absolute;
+  top: -0.1rem;
+  right: -1.1rem;
+  width: 22rem;
+  margin: 0;
+}
+
+.slide[data-title="Custom Avatars"] .slide-figure img {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  object-fit: fill;
+}
+
+.slide[data-title="Text-to-Motion Generation"] .slide-figure {
+  width: min(100%, 42rem);
+  max-width: 42rem;
+  margin: 0.9rem auto 0;
+}
+
+.slide[data-title="Text-to-Motion Generation"] .slide-figure img {
+  max-height: 25rem;
+  object-fit: contain;
+}
+
 .slide[data-slide="1"] .slide-content {
   padding: 2rem 2.7rem;
 }
@@ -1105,6 +1235,11 @@
   width: min(100%, 32rem);
   max-width: 32rem;
   margin: 0.85rem 0 0;
+}
+
+.slide[data-title="Part 3: Group Character Animation Project"] .slide-figure {
+  width: min(100%, 36.8rem);
+  max-width: 36.8rem;
 }
 
 .deck-page.is-fullscreen {
