@@ -11,14 +11,14 @@ from pathlib import Path
 from urllib.parse import urldefrag
 
 
-RELEASE_PROFILES = ("parts12", "all")
-
-COMMON_FORBIDDEN_PATHS = (
+FORBIDDEN_PATHS = (
     ".viewer_imports",
     "4DDress_samples",
     "UP2You",
-    "assets/motion_sources",
     "assets/smpl",
+    "libraries/motions/custom",
+    "libraries/poses",
+    "libraries/scenes",
     "docs/__pycache__",
     "docs/part3_notes.md",
     "docs/staff_runbook.md",
@@ -26,7 +26,6 @@ COMMON_FORBIDDEN_PATHS = (
     "docs/session_handoff.md",
     "exports",
     "human_character_demo",
-    "libraries",
     "nvdiffrast",
     "staff_tools",
     "viewer/__pycache__",
@@ -35,38 +34,22 @@ COMMON_FORBIDDEN_PATHS = (
     "viewer/reference_impl",
 )
 
-PROFILE_FORBIDDEN_PATHS = {
-    "parts12": (
-        "assets/motions",
-        "docs/part3.md",
-        "docs/part4.md",
-        "viewer/scene_core.py",
-        "viewer/scene_editor.py",
-        "viewer/scene_editor_web",
-        "viewer/scene_render.py",
-        "viewer/scene_web_server.py",
-    ),
-    "all": (
-        "docs/part3_placeholder.md",
-    ),
-}
-
-PROFILE_REQUIRED_PATHS = {
-    "parts12": (
-        "docs/part3_placeholder.md",
-    ),
-    "all": (
-        "docs/part3.md",
-        "assets/motions/part3_building_blocks",
-        "viewer/scene_web_server.py",
-    ),
-}
+REQUIRED_PATHS = (
+    "docs/final_report.md",
+    "docs/part3.md",
+    "slides/part3.md",
+    "libraries/motions/preset",
+    "viewer/hy_motion_import.py",
+    "viewer/scene_web_server.py",
+)
 
 FORBIDDEN_GLOBS = (
     "**/.DS_Store",
     "**/__pycache__/**",
     "**/*.pyc",
     "**/*.pkl",
+    "libraries/avatars/*.zip",
+    "libraries/avatars/**/*.zip",
     "**/*.pickle",
     "docs/*.html",
 )
@@ -106,7 +89,8 @@ IGNORED_TEXT_FILES = {
 }
 
 GENERATED_SITE_LINK_SOURCES = {
-    "slides/intro.md",
+    "slides/parts12.md",
+    "slides/part3.md",
 }
 
 
@@ -114,12 +98,8 @@ def normalize(path: Path) -> str:
     return path.as_posix().strip("/")
 
 
-def forbidden_paths_for_profile(release_profile: str) -> tuple[str, ...]:
-    return COMMON_FORBIDDEN_PATHS + PROFILE_FORBIDDEN_PATHS[release_profile]
-
-
-def is_forbidden_path(relative: str, *, release_profile: str) -> str | None:
-    for forbidden in forbidden_paths_for_profile(release_profile):
+def is_forbidden_path(relative: str) -> str | None:
+    for forbidden in FORBIDDEN_PATHS:
         if relative == forbidden or relative.startswith(f"{forbidden}/"):
             return forbidden
     for pattern in FORBIDDEN_GLOBS:
@@ -132,25 +112,23 @@ def is_text_file(path: Path) -> bool:
     return path.suffix.lower() in TEXT_SUFFIXES
 
 
-def audit(root: Path, *, max_file_mb: int, release_profile: str) -> list[str]:
+def audit(root: Path, *, max_file_mb: int) -> list[str]:
     problems: list[str] = []
     max_bytes = max_file_mb * 1024 * 1024
     root = root.resolve()
 
-    if release_profile not in RELEASE_PROFILES:
-        return [f"unknown release profile: {release_profile}"]
     if not root.exists():
         return [f"release root does not exist: {root}"]
 
-    for required in PROFILE_REQUIRED_PATHS[release_profile]:
+    for required in REQUIRED_PATHS:
         if not (root / required).exists():
-            problems.append(f"missing required {release_profile!r} release path: {required}")
+            problems.append(f"missing required release path: {required}")
 
     for path in sorted(root.rglob("*")):
         if ".git" in path.relative_to(root).parts:
             continue
         relative = normalize(path.relative_to(root))
-        forbidden = is_forbidden_path(relative, release_profile=release_profile)
+        forbidden = is_forbidden_path(relative)
         if forbidden:
             problems.append(f"forbidden path matched {forbidden!r}: {relative}")
             continue
@@ -211,12 +189,6 @@ def main() -> int:
         help="Student release tree to audit.",
     )
     parser.add_argument(
-        "--release-profile",
-        choices=RELEASE_PROFILES,
-        default="parts12",
-        help="Student release profile to audit: parts12 blocks unreleased Part 3 material; all expects released Part 3 material.",
-    )
-    parser.add_argument(
         "--max-file-mb",
         type=int,
         default=20,
@@ -227,7 +199,6 @@ def main() -> int:
     problems = audit(
         Path(args.root),
         max_file_mb=args.max_file_mb,
-        release_profile=args.release_profile,
     )
     if problems:
         print("Student release audit failed:", file=sys.stderr)

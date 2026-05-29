@@ -20,11 +20,12 @@ jobs:
 
       - name: Build generated HTML
         run: |
-          python docs/build_site.py --release-profile parts12 --output site --source-base-url https://github.com/CambridgeCVCourses/IIA-Project-GF5/blob/main/docs
-          python slides/build_slides.py --output site/intro.html
+          python docs/build_site.py --output site --source-base-url https://github.com/CambridgeCVCourses/IIA-Project-GF5/blob/main/docs
+          python slides/build_slides.py --output site/parts12-slides.html
+          python slides/build_slides.py --source slides/part3.md --output site/part3-slides.html
 
       - name: Remove Python caches from generated preview
         run: find . -type d -name __pycache__ -prune -exec rm -rf {} +
 
       - name: Audit student release
-        run: python scripts/check_student_release.py . --release-profile parts12
+        run: python scripts/check_student_release.py .

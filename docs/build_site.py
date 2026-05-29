@@ -32,64 +32,43 @@ class Page:
     eyebrow: str
 
 
-RELEASE_PROFILES = ("parts12", "all")
-ACTIVE_RELEASE_PROFILE = "parts12"
+@dataclass(frozen=True)
+class SlideDeck:
+    source: str
+    output: str
+    nav_label: str
 
-PARTS12_PAGES = [
-    Page("project_overview.md", "index.html", "Overview", "Parts 1 and 2 release"),
-    Page("setup.md", "setup.html", "Setup", "Before coding"),
-    Page("part1.md", "part1.html", "Part 1", "Part 1"),
-    Page("part2.md", "part2.html", "Part 2", "Part 2"),
-    Page("interim.md", "interim.html", "Interim", "Checkpoint"),
-    Page("part3_placeholder.md", "part3.html", "Part 3", "Coming later"),
-    Page("faq.md", "faq.html", "FAQ", "Common questions"),
-    Page("references.md", "references.html", "References", "Further reading"),
+
+SLIDE_DECKS = [
+    SlideDeck("../slides/parts12.md", "parts12-slides.html", "Parts 1&2"),
+    SlideDeck("../slides/part3.md", "part3-slides.html", "Part 3"),
 ]
 
-ALL_PAGES = [
-    Page("project_overview.md", "index.html", "Overview", "Full student release"),
+PAGES = [
+    Page("project_overview.md", "index.html", "Overview", "Student release"),
     Page("setup.md", "setup.html", "Setup", "Before coding"),
     Page("part1.md", "part1.html", "Part 1", "Part 1"),
     Page("part2.md", "part2.html", "Part 2", "Part 2"),
     Page("interim.md", "interim.html", "Interim", "Checkpoint"),
     Page("part3.md", "part3.html", "Part 3", "Group project"),
+    Page("scene_editor.md", "scene_editor.html", "Scene Editor", "Part 3 tool"),
+    Page("showcase.md", "showcase.html", "Showcase", "Final session"),
+    Page("final_report.md", "final_report.html", "Final Report", "Final submission"),
     Page("faq.md", "faq.html", "FAQ", "Common questions"),
     Page("references.md", "references.html", "References", "Further reading"),
 ]
 
 
-def build_source_to_output(pages: list[Page]) -> dict[str, str]:
-    mapping = {page.source: page.output for page in pages}
-    mapping.update(
-        {
-            "../slides/intro.md": "intro.html",
-            "slides/intro.md": "intro.html",
-            "part3.md": "part3.html",
-            "part3_placeholder.md": "part3.html",
-        }
-    )
+def build_source_to_output() -> dict[str, str]:
+    mapping = {page.source: page.output for page in PAGES}
+    for deck in SLIDE_DECKS:
+        mapping[deck.source] = deck.output
+        if deck.source.startswith("../"):
+            mapping[deck.source[3:]] = deck.output
     return mapping
 
 
-def pages_for_release_profile(profile: str) -> list[Page]:
-    if profile == "parts12":
-        return PARTS12_PAGES
-    if profile == "all":
-        return ALL_PAGES
-    raise ValueError(f"Unknown release profile: {profile}")
-
-
-PAGES = pages_for_release_profile(ACTIVE_RELEASE_PROFILE)
-SOURCE_TO_OUTPUT = build_source_to_output(PAGES)
-
-
-def set_release_profile(profile: str) -> None:
-    global ACTIVE_RELEASE_PROFILE, PAGES, SOURCE_TO_OUTPUT
-    if profile not in RELEASE_PROFILES:
-        raise ValueError(f"Unknown release profile: {profile}")
-    ACTIVE_RELEASE_PROFILE = profile
-    PAGES = pages_for_release_profile(profile)
-    SOURCE_TO_OUTPUT = build_source_to_output(PAGES)
+SOURCE_TO_OUTPUT = build_source_to_output()
 
 
 @dataclass(frozen=True)
@@ -235,6 +214,34 @@ def youtube_embed(markdown: str) -> str:
     )
 
 
+def local_video_embed(markdown: str) -> str:
+    fields = split_directive_fields(markdown)
+    if not fields or not fields[0]:
+        raise SystemExit("Video directive is missing a source path")
+
+    source = fields[0]
+    caption = fields[1] if len(fields) > 1 else ""
+    options = {field.lower() for field in fields[2:]}
+    src = html.escape(rewrite_href(source), quote=True)
+    source_type = "video/mp4" if source.lower().split("?", 1)[0].endswith(".mp4") else ""
+    type_attr = f' type="{source_type}"' if source_type else ""
+    autoplay_attr = " autoplay muted" if "autoplay" in options else ""
+    loop_attr = " loop" if "loop" in options else ""
+    caption_html = f"<figcaption>{format_inline(caption)}</figcaption>" if caption else ""
+    fallback = f'<a href="{src}">Open video</a>'
+    return (
+        '<figure class="doc-media-embed local-video-embed">'
+        '<div class="doc-media-frame">'
+        f'<video controls preload="metadata" playsinline{autoplay_attr}{loop_attr}>'
+        f'<source src="{src}"{type_attr}>'
+        f"{fallback}"
+        "</video>"
+        "</div>"
+        f"{caption_html}"
+        "</figure>"
+    )
+
+
 SCHEDULE_COLUMNS = [
     ("Tue", "am", "Tue AM", "11-13"),
     ("Fri", "am", "Fri AM", "9-11"),
@@ -283,7 +290,7 @@ SCHEDULE_WEEKS = [
         "label": "Week 4",
         "dates": "8-12 Jun",
         "am": {
-            "Tue": [("presentation", "Final presentation", "11-13, LR5")],
+            "Tue": [("presentation", "Showcase", "11-13, LT6")],
         },
         "pm": {
             "Fri": [
@@ -304,6 +311,7 @@ def schedule_calendar_embed(markdown: str = "") -> str:
     highlighted_events = {
         ("Week 2", "Fri", "am", "help", "Help", "9-10, BE454"),
         ("Week 2", "Fri", "pm", "deadline", "Interim due", "2pm"),
+        ("Week 4", "Tue", "am", "presentation", "Showcase", "11-13, LT6"),
         ("Week 4", "Fri", "pm", "deadline", "Final report due", "4pm; animation due"),
     }
     highlighted_empty_cells = {("Week 4", "Fri", "am")}
@@ -362,7 +370,7 @@ def schedule_calendar_embed(markdown: str = "") -> str:
             ("mandatory", "Mandatory"),
             ("help", "Optional help"),
             ("deadline", "Deadline"),
-            ("presentation", "Presentation"),
+            ("presentation", "Showcase"),
         ]
     )
     return (
@@ -383,13 +391,38 @@ def schedule_calendar_embed(markdown: str = "") -> str:
         + (
             '<p class="calendar-change-note">'
             "<strong>Updated:</strong> Fri 29 May help is 9-10; interim report and results are due 2pm; "
-            "Fri 12 Jun has no help or mandatory session."
+            "Tue 9 Jun showcase is in LT6; Fri 12 Jun has no help or mandatory session."
             "</p>"
             if highlight_updates
             else ""
         )
         + f'<p class="calendar-note">{html.escape(SCHEDULE_CALENDAR_NOTE)}</p>'
         + "</section>"
+    )
+
+
+def reports_overview_embed(_markdown: str = "") -> str:
+    interim_href = html.escape(rewrite_href("interim.md"), quote=True)
+    final_href = html.escape(rewrite_href("final_report.md"), quote=True)
+    items = [
+        (
+            f'<a href="{interim_href}">Interim Report</a>',
+            "due after Part 2; individual report, code, videos, and comparison figures.",
+        ),
+        (
+            f'<a href="{final_href}">Final Report</a>',
+            "due after Part 3; each student submits a PDF with a shared group-work section and their own individual contribution section, plus the group animation result files.",
+        ),
+    ]
+
+    rendered_items = "".join(
+        f"<li><strong>{label}</strong>: {html.escape(description)}</li>"
+        for label, description in items
+    )
+    return (
+        "<p>There are two report checkpoints in the project.</p>"
+        f"<ul>{rendered_items}</ul>"
+        "<p>Each report page gives the exact structure, evidence, and submission requirements.</p>"
     )
 
 
@@ -473,8 +506,14 @@ class MarkdownRenderer:
             if mode == "youtube":
                 self.out.append(youtube_embed(payload))
                 return
+            if mode == "video":
+                self.out.append(local_video_embed(payload))
+                return
             if mode == "schedule-calendar":
                 self.out.append(schedule_calendar_embed(payload))
+                return
+            if mode == "reports-overview":
+                self.out.append(reports_overview_embed(payload))
                 return
             raise SystemExit(f"Unknown site directive: {mode}")
 
@@ -601,6 +640,8 @@ class MarkdownRenderer:
                 "assessment-at-a-glance": "assessment-list",
                 "animation-and-rigging": "reference-list",
                 "recommended-starting-points": "reference-list",
+                "useful-materials": "reference-list",
+                "tools-used-in-gf5": "reference-list",
             }
             if self.list_type == "ul" and self.current_heading_id in list_classes:
                 list_class = f' class="{list_classes[self.current_heading_id]}"'
@@ -627,7 +668,12 @@ class MarkdownRenderer:
         self.close_blocks()
 
 
-def render_nav(current: Page | None, *, slides_active: bool = False) -> str:
+def render_nav(
+    current: Page | None,
+    *,
+    slides_active: bool = False,
+    current_slide_output: str | None = None,
+) -> str:
     def nav_link(label: str, href: str, active: bool = False, class_name: str = "") -> str:
         aria = ' aria-current="page"' if active else ""
         class_attr = f' class="{html.escape(class_name, quote=True)}"' if class_name else ""
@@ -640,6 +686,13 @@ def render_nav(current: Page | None, *, slides_active: bool = False) -> str:
     material_links = "\n".join(
         nav_link(page.nav_label, page.output, page == current) for page in material_pages
     )
+    slide_decks = SLIDE_DECKS
+    active_slide_output = current_slide_output or (slide_decks[0].output if slide_decks else "")
+    slides_class = "nav-dropdown is-active" if slides_active else "nav-dropdown"
+    slide_links = "\n".join(
+        nav_link(deck.nav_label, deck.output, slides_active and deck.output == active_slide_output)
+        for deck in slide_decks
+    )
     github_href = html.escape(GITHUB_REPOSITORY_URL, quote=True)
     links = [
         nav_link(overview.nav_label, overview.output, current == overview),
@@ -649,7 +702,12 @@ def render_nav(current: Page | None, *, slides_active: bool = False) -> str:
 {material_links}
             </div>
           </div>""",
-        nav_link("Slides", "intro.html", slides_active),
+        f"""          <div class="{slides_class}" data-nav-dropdown>
+            <button class="nav-dropdown-trigger" type="button" aria-haspopup="true" aria-expanded="false" data-nav-dropdown-trigger>Slides</button>
+            <div class="nav-dropdown-menu" data-nav-dropdown-menu>
+{slide_links}
+            </div>
+          </div>""",
         (
             f'          <a class="nav-github-button" href="{github_href}" '
             'target="_blank" rel="noreferrer">GitHub</a>'
@@ -659,10 +717,6 @@ def render_nav(current: Page | None, *, slides_active: bool = False) -> str:
 
 
 def render_release_summary() -> str:
-    if ACTIVE_RELEASE_PROFILE == "all":
-        part3_copy = "Group character animation, motion planning, and final video."
-    else:
-        part3_copy = "Public preview kept ready for the later brief."
     return f"""      <section class="release-strip" aria-label="Release summary">
         <div class="metric">
           <strong>Part 1</strong>
@@ -673,12 +727,8 @@ def render_release_summary() -> str:
           <span>Skinning weights, one-hot binding, and LBS comparison.</span>
         </div>
         <div class="metric">
-          <strong>Interim</strong>
-          <span>Code, videos, figures, and the report checkpoint.</span>
-        </div>
-        <div class="metric">
           <strong>Part 3</strong>
-          <span>{part3_copy}</span>
+          <span>Group character animation, motion planning, and final video.</span>
         </div>
       </section>
 """
@@ -690,7 +740,7 @@ def render_actions(page: Page) -> str:
         return f"""          <div class="actions">
             <a class="button primary" href="{github_href}" target="_blank" rel="noreferrer">GitHub codebase</a>
             <a class="button" href="setup.html">Start setup</a>
-            <a class="button" href="intro.html">Intro slides</a>
+            <a class="button" href="parts12-slides.html">Open slides</a>
           </div>
 """
     index = PAGES.index(page)
@@ -799,9 +849,10 @@ def render_page(
     </header>
 
     <main id="main" class="page doc-page">
-{render_hero(page, doc)}{release_summary}
+{render_hero(page, doc)}
       <div class="doc-shell">
 {toc}        <article class="{article_class}">
+{release_summary}
 {indent(doc.body, 10)}
         </article>
       </div>
@@ -843,9 +894,7 @@ def build_site(
     output: Path,
     *,
     source_base_url: str | None = None,
-    release_profile: str = "parts12",
 ) -> None:
-    set_release_profile(release_profile)
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     assets_output = output / "assets"
@@ -883,18 +932,11 @@ def main() -> None:
         default=None,
         help="Optional URL prefix for Markdown source links in generated footers.",
     )
-    parser.add_argument(
-        "--release-profile",
-        choices=RELEASE_PROFILES,
-        default="parts12",
-        help="Student release profile to render: parts12 keeps the Part 3 preview; all renders released Part 3 pages.",
-    )
     args = parser.parse_args()
 
     build_site(
         args.output.resolve(),
         source_base_url=args.source_base_url,
-        release_profile=args.release_profile,
     )
 
 

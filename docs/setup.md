@@ -70,7 +70,7 @@ Useful viewer files to read when following data flow:
 
 ## Main Viewer Controls
 
-- `Motion` and `Animate`: choose and play a built-in or saved motion clip.
+- `Motion` and `Animate`: choose and play a built-in or custom motion clip.
 - `Show Skeleton` and `Show Mesh`: inspect the rig and visible character
   surface.
 - `Selected Joint` and `Joint Editor`: rotate individual joints and debug the
@@ -82,7 +82,7 @@ Useful viewer files to read when following data flow:
 
 The viewer may create local working folders while you experiment:
 
-- `libraries/`: poses and motions saved from the viewer
+- `libraries/poses/` and `libraries/motions/custom/`: local poses and custom motions from the viewer
 - `exports/`: rendered videos
 - `.viewer_imports/`: uploaded character packages
 

@@ -36,8 +36,8 @@ from build_site import (
 )
 
 
-DEFAULT_SOURCE = ROOT / "intro.md"
-DEFAULT_OUTPUT = PROJECT_ROOT / "site" / "intro.html"
+DEFAULT_SOURCE = ROOT / "parts12.md"
+DEFAULT_OUTPUT = PROJECT_ROOT / "site" / "parts12-slides.html"
 STYLE_ASSET = "deck.css"
 
 
@@ -125,6 +125,25 @@ class SlideMarkdownRenderer(MarkdownRenderer):
         self.out.append("</table>")
         if should_clip_table:
             self.out.append("</div>")
+
+    def close_list(self) -> None:
+        if not self.list_type:
+            return
+
+        class_attr = ""
+        if self.list_type == "ol" and len(self.list_items) >= 5:
+            class_attr = ' class="plain-list"'
+
+        if self.list_type == "ol" and self.list_start != 1:
+            self.out.append(f'<ol start="{self.list_start}"{class_attr}>')
+        else:
+            self.out.append(f"<{self.list_type}{class_attr}>")
+        for item in self.list_items:
+            self.out.append(f"  <li>{format_inline(item)}</li>")
+        self.out.append(f"</{self.list_type}>")
+        self.list_type = None
+        self.list_items = []
+        self.list_start = 1
 
     def close_blocks(self) -> None:
         self.close_table()
@@ -265,6 +284,34 @@ def website_screenshot(markdown: str) -> str:
         f'<a href="{href}" target="_blank" rel="noreferrer">'
         f'<img src="{image_src}" alt="{title_text} website screenshot">'
         "</a>"
+        f"{caption_html}"
+        "</figure>"
+    )
+
+
+def local_video_embed(markdown: str) -> str:
+    fields = split_directive_fields(markdown)
+    if not fields or not fields[0]:
+        raise SystemExit("Video slide directive is missing a source path")
+
+    source = fields[0]
+    caption = fields[1] if len(fields) > 1 else ""
+    options = {field.lower() for field in fields[2:]}
+    src = html.escape(rewrite_href(source), quote=True)
+    source_type = "video/mp4" if source.lower().split("?", 1)[0].endswith(".mp4") else ""
+    type_attr = f' type="{source_type}"' if source_type else ""
+    autoplay_attr = " autoplay muted" if "autoplay" in options else ""
+    loop_attr = " loop" if "loop" in options else ""
+    caption_html = f"<figcaption>{format_inline(caption)}</figcaption>" if caption else ""
+    fallback = f'<a href="{src}">Open video</a>'
+    return (
+        '<figure class="media-embed local-video-embed">'
+        '<div class="media-frame">'
+        f'<video controls preload="metadata" playsinline{autoplay_attr}{loop_attr}>'
+        f'<source src="{src}"{type_attr}>'
+        f"{fallback}"
+        "</video>"
+        "</div>"
         f"{caption_html}"
         "</figure>"
     )
@@ -461,6 +508,9 @@ def expand_directives(markdown: str, base_dir: Path) -> str:
         if mode == "schedule-calendar":
             expanded.extend(schedule_calendar_embed(payload).splitlines())
             continue
+        if mode == "video":
+            expanded.extend(local_video_embed(payload).splitlines())
+            continue
 
         if mode not in {"include", "bullets", "first-paragraph", "timeline", "assessment-table"}:
             raise SystemExit(f"Unknown slide directive: {mode}")
@@ -569,12 +619,17 @@ def render_slides(slides: list[Slide]) -> str:
 
 def render_section_nav(slides: list[Slide]) -> str:
     preferred_markers = [
-        ("Intro", "Bring A Character To Life"),
+        ("Intro", "Parts 1&2: Bring A Character To Life"),
         ("Logistics", "Four-Week Timeline"),
         ("Week 1", "Week 1: Forward Kinematics"),
         ("Week 2", "Week 2: Skinning And SMPL"),
-        ("Reports", "Interim Checkpoint"),
-        ("Beyond", "Parts 3 And 4"),
+        ("Reports", "Reports"),
+        ("Beyond", "Part 3"),
+        ("Intro", "Part 3: Group Character Animation Project"),
+        ("Editor", "Scene Motion Editor"),
+        ("Avatars", "Custom Avatars"),
+        ("Motion", "Text-to-Motion Generation"),
+        ("Report & Showcase", "Part 3 Showcase"),
         ("Policy", "AI Use Policy"),
     ]
     by_title = {slide.title: slide.index for slide in slides}
@@ -603,8 +658,8 @@ def render_section_nav(slides: list[Slide]) -> str:
     return "\n".join(rendered)
 
 
-def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
-    title = slides[0].title if slides else "Intro Session"
+def render_html(source: Path, slides: list[Slide], output_dir: Path, output_name: str) -> str:
+    title = slides[0].title if slides else "Parts 1&2 Session"
     html_title = SITE_TITLE if title == SITE_TITLE else f"{title} | {SITE_TITLE}"
     source_relative = Path(os.path.relpath(source, output_dir)).as_posix()
     return f"""<!doctype html>
@@ -628,7 +683,7 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
           <span>{html.escape(SITE_TITLE)}</span>
         </a>
         <nav class="nav-links" aria-label="Main navigation">
-{render_nav(None, slides_active=True)}
+{render_nav(None, slides_active=True, current_slide_output=output_name)}
         </nav>
       </div>
     </header>
@@ -698,7 +753,8 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
         const root = document.body;
         const deck = document.querySelector(".deck");
         const slidesRegion = document.querySelector(".slides");
-        const notesApiUrl = "api/intro-notes";
+        const deckId = document.body.dataset.deck || "parts12";
+        const notesApiUrl = `api/slide-notes/${{encodeURIComponent(deckId)}}`;
         const noteCache = new Map();
         let current = 0;
         let showNotes = false;
@@ -733,7 +789,7 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
         }}
 
         function noteKey(index = current) {{
-          return `gf5-slides-notes-v1-${{document.body.dataset.deck || "intro"}}-slide-${{index + 1}}`;
+          return `gf5-slides-notes-v1-${{deckId}}-slide-${{index + 1}}`;
         }}
 
         function cacheBrowserNotes() {{
@@ -901,7 +957,7 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
           const url = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = url;
-          link.download = "gf5-intro-notes.txt";
+          link.download = `gf5-${{deckId}}-notes.txt`;
           document.body.append(link);
           link.click();
           link.remove();
@@ -1123,7 +1179,10 @@ def render_html(source: Path, slides: list[Slide], output_dir: Path) -> str:
         document.querySelector('[data-action="next"]').addEventListener("click", nextSlide);
         scrubber.addEventListener("input", () => showSlide(Number(scrubber.value) - 1));
         sectionButtons.forEach((button) => {{
-          button.addEventListener("click", () => showSlide(Number(button.dataset.sectionTarget || "1") - 1));
+          button.addEventListener("click", () => {{
+            showSlide(Number(button.dataset.sectionTarget || "1") - 1);
+            button.blur();
+          }});
         }});
         notesButton.addEventListener("click", () => {{
           showNotes = !showNotes;
@@ -1201,7 +1260,7 @@ def build_slides(source: Path, output: Path) -> None:
     shutil.copytree(DOCS_ROOT / "assets", assets_output, dirs_exist_ok=True)
     shutil.copy2(ROOT / "assets" / STYLE_ASSET, assets_output / STYLE_ASSET)
     shutil.copy2(PROJECT_ROOT / "LICENSE", output.parent / "LICENSE")
-    output.write_text(render_html(source.resolve(), slides, output.parent), encoding="utf-8")
+    output.write_text(render_html(source.resolve(), slides, output.parent, output.name), encoding="utf-8")
     display_path = output.relative_to(Path.cwd()) if output.is_relative_to(Path.cwd()) else output
     print(f"wrote {display_path} from {source.name}")
 

@@ -933,7 +933,7 @@ def discover_asset_sources(
     return sources
 
 
-def discover_motion_library(motion_dir: Path, *, label_prefix: str = "Saved") -> dict[str, Path]:
+def discover_motion_library(motion_dir: Path, *, label_prefix: str = "Custom") -> dict[str, Path]:
     motions: dict[str, Path] = {}
     if not motion_dir.exists():
         return motions
@@ -1589,23 +1589,27 @@ def main() -> None:
     avatar_import_root = project_root / ".viewer_imports" / "avatars"
     asset_sources = discover_asset_sources(asset_dir, smpl_model_path, character_dirs)
     pose_library_dir = project_root / "libraries" / "poses"
-    motion_library_dir = project_root / "libraries" / "motions"
+    motion_library_dir = project_root / "libraries" / "motions" / "custom"
     video_export_dir = project_root / "exports" / "videos"
     motion_payload_cache: dict[Path, tuple[float, dict[str, Any]]] = {}
     if not asset_sources:
         raise FileNotFoundError(f"No assets found in {asset_dir}")
 
     named_pose_sources, recent_pose_sources = discover_pose_library(pose_library_dir)
-    preset_motion_dir = project_root / "assets" / "motions"
-    motion_sources: dict[str, tuple[str, str | Path]] = {
+    preset_motion_dirs = (
+        project_root / "libraries" / "motions" / "preset",
+        project_root / "libraries" / "motions" / "staff_generated",
+    )
+    motion_options: dict[str, tuple[str, str | Path]] = {
         WORKING_SEQUENCE_LABEL: ("working_sequence", WORKING_SEQUENCE_LABEL),
     }
     for clip_name in CLIP_NAMES:
-        motion_sources[clip_name] = ("built_in", clip_name)
-    for label, path in discover_motion_library(preset_motion_dir, label_prefix="Preset").items():
-        motion_sources[label] = ("preset", path)
+        motion_options[clip_name] = ("built_in", clip_name)
+    for preset_motion_dir in preset_motion_dirs:
+        for label, path in discover_motion_library(preset_motion_dir, label_prefix="Preset").items():
+            motion_options[label] = ("preset", path)
     for label, path in discover_motion_library(motion_library_dir).items():
-        motion_sources[label] = ("saved", path)
+        motion_options[label] = ("custom", path)
 
     server = viser.ViserServer(port=args.port)
     server.scene.set_up_direction("+z")
@@ -1636,7 +1640,7 @@ def main() -> None:
         )
         clip_dropdown = server.gui.add_dropdown(
             "Motion",
-            tuple(motion_sources.keys()),
+            tuple(motion_options.keys()),
             initial_value=CLIP_NAMES[0] if CLIP_NAMES else WORKING_SEQUENCE_LABEL,
         )
         motion_preview_time_slider = server.gui.add_slider(
@@ -1779,7 +1783,7 @@ def main() -> None:
         save_new_sequence_button = server.gui.add_button("Save Sequence As New", disabled=True)
         clear_motion_library_button = server.gui.add_button("Clear Motion Library")
         motion_library_status_text = server.gui.add_html(
-            format_status_html("Motion Library", "No saved motion yet")
+            format_status_html("Motion Library", "No custom motion yet")
         )
 
     with server.gui.add_folder("Video Export"):
@@ -1841,16 +1845,16 @@ def main() -> None:
         return sorted(state.keyframes or [], key=lambda item: float(item["time_sec"]))
 
     def selected_keyframed_motion_payload() -> dict[str, Any] | None:
-        source_kind, source_value = motion_sources[clip_dropdown.value]
+        source_kind, source_value = motion_options[clip_dropdown.value]
         if source_kind in {"built_in", "working_sequence"}:
             return None
         try:
-            return load_saved_motion_payload(Path(source_value))
+            return load_custom_motion_payload(Path(source_value))
         except Exception:
             return None
 
     def selected_motion_preview_duration() -> float:
-        if motion_sources[clip_dropdown.value][0] == "working_sequence":
+        if motion_options[clip_dropdown.value][0] == "working_sequence":
             ordered_keyframes = sorted_keyframes()
             if len(ordered_keyframes) >= 2:
                 start_time = float(ordered_keyframes[0]["time_sec"])
@@ -1869,7 +1873,7 @@ def main() -> None:
         return 4.0
 
     def selected_motion_preview_marks() -> tuple[GuiSliderMark, ...] | None:
-        source_kind, _source_value = motion_sources[clip_dropdown.value]
+        source_kind, _source_value = motion_options[clip_dropdown.value]
         if source_kind == "working_sequence":
             keyframes = sorted_keyframes()
             if not keyframes:
@@ -1888,7 +1892,7 @@ def main() -> None:
         )
 
     def selected_motion_is_animatable() -> bool:
-        source_kind, _source_value = motion_sources[clip_dropdown.value]
+        source_kind, _source_value = motion_options[clip_dropdown.value]
         if source_kind == "built_in":
             return True
         if source_kind == "working_sequence":
@@ -1956,7 +1960,7 @@ def main() -> None:
             animate_checkbox.value = False
 
     def selected_motion_export_duration() -> float:
-        source_kind, _source_value = motion_sources[clip_dropdown.value]
+        source_kind, _source_value = motion_options[clip_dropdown.value]
         if source_kind == "working_sequence":
             ordered_keyframes = sorted_keyframes()
             if len(ordered_keyframes) < 2:
@@ -1977,7 +1981,7 @@ def main() -> None:
         return duration
 
     def update_video_duration_control() -> None:
-        source_kind, _source_value = motion_sources[clip_dropdown.value]
+        source_kind, _source_value = motion_options[clip_dropdown.value]
         video_duration_number.disabled = source_kind != "built_in"
         if source_kind == "built_in":
             return
@@ -1991,7 +1995,7 @@ def main() -> None:
 
     def working_sequence_has_editable_source() -> bool:
         return (
-            state.working_sequence_source_kind == "saved"
+            state.working_sequence_source_kind == "custom"
             and state.working_sequence_source_path is not None
         )
 
@@ -2042,7 +2046,7 @@ def main() -> None:
         remove_keyframe_button.disabled = not has_keyframe_at_time
         update_sequence_save_controls()
         update_video_duration_control()
-        if motion_sources[clip_dropdown.value][0] == "working_sequence":
+        if motion_options[clip_dropdown.value][0] == "working_sequence":
             update_motion_preview_controls()
 
     def update_joint_dropdown_options() -> None:
@@ -2218,7 +2222,7 @@ def main() -> None:
         try:
             pose_sample = sample_selected_motion(time_sec)
         except Exception as exc:
-            if motion_sources[clip_dropdown.value][0] == "working_sequence":
+            if motion_options[clip_dropdown.value][0] == "working_sequence":
                 animate_checkbox.value = False
                 reset_current_pose()
                 set_markdown_status(motion_library_status_text, "Motion Library", str(exc))
@@ -2234,16 +2238,17 @@ def main() -> None:
         show_pose(local_rotations, root_offset)
 
     def refresh_motion_dropdown_options() -> None:
-        motion_sources.clear()
-        motion_sources[WORKING_SEQUENCE_LABEL] = ("working_sequence", WORKING_SEQUENCE_LABEL)
+        motion_options.clear()
+        motion_options[WORKING_SEQUENCE_LABEL] = ("working_sequence", WORKING_SEQUENCE_LABEL)
         for clip_name in CLIP_NAMES:
-            motion_sources[clip_name] = ("built_in", clip_name)
-        for label, path in discover_motion_library(preset_motion_dir, label_prefix="Preset").items():
-            motion_sources[label] = ("preset", path)
+            motion_options[clip_name] = ("built_in", clip_name)
+        for preset_motion_dir in preset_motion_dirs:
+            for label, path in discover_motion_library(preset_motion_dir, label_prefix="Preset").items():
+                motion_options[label] = ("preset", path)
         for label, path in discover_motion_library(motion_library_dir).items():
-            motion_sources[label] = ("saved", path)
-        previous_value = clip_dropdown.value if clip_dropdown.value in motion_sources else None
-        clip_dropdown.options = tuple(motion_sources.keys())
+            motion_options[label] = ("custom", path)
+        previous_value = clip_dropdown.value if clip_dropdown.value in motion_options else None
+        clip_dropdown.options = tuple(motion_options.keys())
         if previous_value is not None:
             clip_dropdown.value = previous_value
         else:
@@ -2298,7 +2303,7 @@ def main() -> None:
         payload_name = str(payload.get("name", "")).strip()
         if payload_name:
             return payload_name
-        for prefix in ("Preset: ", "Saved: "):
+        for prefix in ("Preset: ", "Custom: "):
             if label.startswith(prefix):
                 return label.removeprefix(prefix)
         return label
@@ -2362,7 +2367,7 @@ def main() -> None:
         refresh_saved_pose_options()
         return removed_pose_count
 
-    def clear_saved_motion_library() -> int:
+    def clear_custom_motion_library() -> int:
         removed_motion_count = 0
         if motion_library_dir.exists():
             for path in motion_library_dir.glob("*.motion.json"):
@@ -2517,7 +2522,7 @@ def main() -> None:
             raise ValueError(f"{path.name} does not contain a valid pose.")
         return payload
 
-    def load_saved_motion_payload(path: Path) -> dict[str, Any]:
+    def load_custom_motion_payload(path: Path) -> dict[str, Any]:
         mtime = path.stat().st_mtime
         cached = motion_payload_cache.get(path)
         if cached is not None and cached[0] == mtime:
@@ -2605,7 +2610,7 @@ def main() -> None:
             local_rotations=local_rotations,
         )
 
-    def sample_saved_motion_payload(payload: dict[str, Any], sample_time: float) -> PoseSample:
+    def sample_custom_motion_payload(payload: dict[str, Any], sample_time: float) -> PoseSample:
         duration_sec = float(payload.get("duration_sec", payload["keyframes"][-1]["time_sec"]))
         return sample_keyframes_as_pose_sample(
             payload["keyframes"],
@@ -2632,13 +2637,13 @@ def main() -> None:
         )
 
     def sample_selected_motion(sample_time: float) -> PoseSample:
-        source_kind, source_value = motion_sources[clip_dropdown.value]
+        source_kind, source_value = motion_options[clip_dropdown.value]
         if source_kind == "working_sequence":
             return sample_working_sequence_as_motion(sample_time)
         if source_kind == "built_in":
             return sample_motion_clip(str(source_value), sample_time)
-        payload = load_saved_motion_payload(Path(source_value))
-        return sample_saved_motion_payload(payload, sample_time)
+        payload = load_custom_motion_payload(Path(source_value))
+        return sample_custom_motion_payload(payload, sample_time)
 
     def sample_captured_keyframe_pose(sample_time: float) -> tuple[list[Mat3f], Vec3f] | None:
         if state.asset is None or not state.keyframes:
@@ -2844,7 +2849,7 @@ def main() -> None:
                     show_pose(state.manual_local_rotations, state.manual_root_offset)
             set_markdown_status(timeline_status_text, "Working Sequence", "No sequence edits yet")
             set_markdown_status(pose_status_text, "Pose Library", "No saved pose yet")
-            set_markdown_status(motion_library_status_text, "Motion Library", "No saved motion yet")
+            set_markdown_status(motion_library_status_text, "Motion Library", "No custom motion yet")
             set_markdown_status(video_status_text, "Video Export", "No video export yet")
             update_keyframe_status()
             update_timeline_controls()
@@ -3138,7 +3143,7 @@ def main() -> None:
     @load_motion_sequence_button.on_click
     def _(_: Any) -> None:
         source_label = clip_dropdown.value
-        source_kind, source_value = motion_sources[source_label]
+        source_kind, source_value = motion_options[source_label]
         payload = selected_keyframed_motion_payload()
         if payload is None:
             set_markdown_status(
@@ -3152,7 +3157,7 @@ def main() -> None:
             key=lambda item: float(item["time_sec"]),
         )
         state.keyframes = keyframes
-        source_path = Path(source_value).resolve() if source_kind in {"preset", "saved"} else None
+        source_path = Path(source_value).resolve() if source_kind in {"preset", "custom"} else None
         source_name = motion_display_name(source_label, payload)
         set_working_sequence_source(
             source_kind=source_kind,
@@ -3180,8 +3185,8 @@ def main() -> None:
             "Working Sequence",
             f"Loaded {len(keyframes)} keyframes from {source_label}",
         )
-        if source_kind == "saved":
-            set_markdown_status(motion_library_status_text, "Motion Library", f"Editing saved sequence {source_name}")
+        if source_kind == "custom":
+            set_markdown_status(motion_library_status_text, "Motion Library", f"Editing custom sequence {source_name}")
         elif source_kind == "preset":
             set_markdown_status(motion_library_status_text, "Motion Library", f"Loaded preset {source_name}; save as new to keep edits")
 
@@ -3219,7 +3224,7 @@ def main() -> None:
         set_markdown_status(timeline_status_text, "Working Sequence", "Cleared the current sequence")
         update_keyframe_status()
         update_timeline_controls()
-        if motion_sources[clip_dropdown.value][0] == "working_sequence":
+        if motion_options[clip_dropdown.value][0] == "working_sequence":
             reset_current_pose()
 
     @save_pose_button.on_click
@@ -3289,7 +3294,7 @@ def main() -> None:
             set_markdown_status(
                 motion_library_status_text,
                 "Motion Library",
-                "Current sequence has no editable saved-library source",
+                "Current sequence has no editable custom-library source",
             )
             return
         motion_name = state.working_sequence_source_name or state.working_sequence_source_path.stem.removesuffix(".motion")
@@ -3326,7 +3331,7 @@ def main() -> None:
             export_path=export_path,
         )
         set_working_sequence_source(
-            source_kind="saved",
+            source_kind="custom",
             source_path=export_path,
             source_name=motion_name,
         )
@@ -3336,7 +3341,7 @@ def main() -> None:
         else:
             update_motion_preview_controls()
         motion_name_text.value = suggest_sequence_name(motion_name)
-        set_markdown_status(motion_library_status_text, "Motion Library", f"Saved new sequence {export_path.name}")
+        set_markdown_status(motion_library_status_text, "Motion Library", f"Saved new custom sequence {export_path.name}")
         update_sequence_save_controls()
 
     @clear_pose_library_button.on_click
@@ -3393,7 +3398,7 @@ def main() -> None:
         modal = server.gui.add_modal("Confirm Clear Motion Library")
         with modal:
             server.gui.add_markdown(
-                "Delete all saved motion files in `libraries/motions/`?"
+                "Delete all custom motion files in `libraries/motions/custom/`?"
             )
             confirm_button = server.gui.add_button("Confirm Clear Motion Library")
             cancel_button = server.gui.add_button("Cancel")
@@ -3404,8 +3409,8 @@ def main() -> None:
 
         @confirm_button.on_click
         def _(_: Any) -> None:
-            removed_motion_count = clear_saved_motion_library()
-            if state.working_sequence_source_kind == "saved":
+            removed_motion_count = clear_custom_motion_library()
+            if state.working_sequence_source_kind == "custom":
                 set_working_sequence_source(
                     source_kind=None,
                     source_path=None,
@@ -3415,7 +3420,7 @@ def main() -> None:
             set_markdown_status(
                 motion_library_status_text,
                 "Motion Library",
-                f"Cleared {removed_motion_count} saved motions",
+                f"Cleared {removed_motion_count} custom motions",
             )
             modal.close()
 
@@ -3491,7 +3496,7 @@ def main() -> None:
             slug = state.asset.label.lower().replace(" ", "_")
             source_slug = (
                 "working_sequence"
-                if motion_sources[clip_dropdown.value][0] == "working_sequence"
+                if motion_options[clip_dropdown.value][0] == "working_sequence"
                 else sanitize_filename_stem(clip_dropdown.value, "motion")
             )
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -3522,7 +3527,7 @@ def main() -> None:
                     pose_sample = sample_selected_motion(preview_time)
                 except Exception as exc:
                     animate_checkbox.value = False
-                    if motion_sources[clip_dropdown.value][0] == "working_sequence":
+                    if motion_options[clip_dropdown.value][0] == "working_sequence":
                         reset_current_pose()
                         set_markdown_status(motion_library_status_text, "Motion Library", str(exc))
                     else:

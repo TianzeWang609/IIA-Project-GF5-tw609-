@@ -120,7 +120,7 @@ The viewer already supports:
 - visualising one-hot and LBS results
 - visualising skinning weights
 - exporting videos
-- reusing saved motion clips from Part 1
+- reusing custom motion clips from Part 1
 
 ## Part 2 Tasks
 

@@ -14,6 +14,19 @@ This part uses a deliberately simple block character so that you can see the
 hierarchy clearly and debug the motion without worrying about smooth mesh
 deformation yet.
 
+## Why The Project Starts With A Block Character
+
+The early parts use a blocky articulated character rather than a realistic
+human mesh.
+
+That is deliberate. A block character makes the hierarchy easy to see:
+
+- each body part is rigid
+- each joint is easy to identify
+- FK bugs are visually obvious
+
+Once the skeleton logic is clear, we switch to SMPL and study mesh deformation.
+
 ## Learning Goals
 
 By the end of Part 1, you should be able to:
@@ -98,6 +111,11 @@ Use the controls to inspect:
 - the skeleton overlay
 - joint labels and joint handles
 - the built-in walk and wave motions
+
+The viewer should give you a direct view of the character, its joint hierarchy,
+and the timeline controls you will use for testing.
+
+![Screenshot of the GF5 asset viewer showing a block character, skeleton overlay, joint controls, and the motion timeline.](assets/asset_viewer.png)
 
 You should be able to point to the shoulder, elbow, hip, knee, and root in the
 viewer and identify their names in the code.
@@ -193,7 +211,7 @@ There is no separate report submission at the end of Part 1.
 Keep these files and figures ready for the interim submission:
 
 - your code
-- one saved motion clip from the viewer
+- one custom motion clip from the viewer
 - one short exported video
 - one screenshot of the skeleton or joint hierarchy in the viewer
 - one screenshot or frame from your custom motion

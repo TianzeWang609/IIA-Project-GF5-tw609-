@@ -3,14 +3,14 @@
 [![Project Page](https://img.shields.io/badge/Project%20Page-GitHub%20Pages-0969da)](https://cambridgecvcourses.github.io/IIA-Project-GF5/)
 
 This repository contains the codebase for the IIA Project GF5: Animating 3D Characters. Start with the [project page](https://cambridgecvcourses.github.io/IIA-Project-GF5/) for the brief, instructions, and
-interim report, then use this repo to run the viewer and complete the coding
+reports, then use this repo to run the viewer and complete the coding
 tasks.
 
 The project is organised into three parts:
 
 - Part 1: forward kinematics on a rigid block character
 - Part 2: skinning weights and linear blend skinning using SMPL
-- Part 3: later group character-animation brief
+- Part 3: group character animation and final video
 
 ## Project Handouts
 
@@ -18,13 +18,18 @@ The project is organised into three parts:
 - [Part 1: Forward Kinematics](https://cambridgecvcourses.github.io/IIA-Project-GF5/part1.html)
 - [Part 2: Skinning and LBS](https://cambridgecvcourses.github.io/IIA-Project-GF5/part2.html)
 - [Interim Report](https://cambridgecvcourses.github.io/IIA-Project-GF5/interim.html)
-- [Part 3: Coming Soon](https://cambridgecvcourses.github.io/IIA-Project-GF5/part3.html)
+- [Part 3: Group Character Animation Project](https://cambridgecvcourses.github.io/IIA-Project-GF5/part3.html)
+- [Scene Editor Manual](https://cambridgecvcourses.github.io/IIA-Project-GF5/scene_editor.html)
+- [Part 3 Showcase](https://cambridgecvcourses.github.io/IIA-Project-GF5/showcase.html)
+- [Final Report](https://cambridgecvcourses.github.io/IIA-Project-GF5/final_report.html)
 - [References](https://cambridgecvcourses.github.io/IIA-Project-GF5/references.html)
-- [Intro Slides](https://cambridgecvcourses.github.io/IIA-Project-GF5/intro.html)
+- [Parts 1&2 Slides](https://cambridgecvcourses.github.io/IIA-Project-GF5/parts12-slides.html)
+- [Part 3 Slides](https://cambridgecvcourses.github.io/IIA-Project-GF5/part3-slides.html)
 
-## Intro Slides
+## Slides
 
-For quick viewing, open the [online intro slides](https://cambridgecvcourses.github.io/IIA-Project-GF5/intro.html).
+For quick viewing, open the [online Parts 1&2 slides](https://cambridgecvcourses.github.io/IIA-Project-GF5/parts12-slides.html)
+or [Part 3 slides](https://cambridgecvcourses.github.io/IIA-Project-GF5/part3-slides.html).
 The Notes panel works there too; notes are cached in the browser on that
 device.
 
@@ -33,9 +38,10 @@ To open the same HTML locally without project-folder note saving, run:
 ```bash
 python3 docs/build_site.py
 python3 slides/build_slides.py
+python3 slides/build_slides.py --source slides/part3.md --output site/part3-slides.html
 ```
 
-Then open `site/intro.html` in a browser.
+Then open `site/parts12-slides.html` or `site/part3-slides.html` in a browser.
 
 To save your own slide notes as a Markdown file in the project folder, run this
 from the repository root:
@@ -44,8 +50,9 @@ from the repository root:
 python3 slides/serve.py
 ```
 
-Then open `http://127.0.0.1:8095/intro.html`. Notes are saved in
-`slides/student_notes/intro_notes.md`.
+Then open `http://127.0.0.1:8095/parts12-slides.html`. Notes are saved per
+deck under `slides/student_notes/`, for example `parts12_notes.md`. The same
+server also builds and serves `part3-slides.html`.
 
 ## Running the Viewer
 
@@ -62,5 +69,5 @@ In short: create the environment from `env.yml`, activate `gf5`, and run
 - `viewer/`: the animation viewer, scene tools, and implementation stubs
 - `assets/blocky/`: the block character assets
 - `assets/smpl/`: local SMPL model files, if installed
-- `libraries/`: local pose and motion libraries created in the viewer
+- `libraries/`: Part 3 motion/avatar libraries plus local saved poses and scenes
 - `exports/`: local rendered videos

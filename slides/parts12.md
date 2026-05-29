@@ -1,4 +1,4 @@
-# Bring A Character To Life
+# Parts 1&2: Bring A Character To Life
 
 ## GF5: Animating 3D Characters
 
@@ -153,7 +153,7 @@ session.
 
 # Why We Start With Blocks
 
-{{include: ../docs/project_overview.md#Why The Project Starts With A Block Character}}
+{{include: ../docs/part1.md#Why The Project Starts With A Block Character}}
 
 ???
 Emphasize that the block character is a diagnostic tool, not a toy example to
@@ -192,7 +192,7 @@ recurrence high level unless the audience asks for the matrix detail.
 - timeline keyframes
 - exported motion video
 
-[Open local viewer](http://localhost:8090)
+![GF5 asset viewer showing the Part 1 block character, skeleton overlay, joint controls, and timeline.](assets/asset_viewer.png)
 
 ???
 Show the demo here.
@@ -209,7 +209,7 @@ capture a keyframe so students understand what they will produce.
 
 # Viewer Controls
 
-- `Motion`: choose a built-in or saved motion clip.
+- `Motion`: choose a built-in or custom motion clip.
 - `Animate`: play or pause the selected motion.
 - `Show Skeleton`, `Show Mesh`, `Show Skinning Weights`: toggle visual layers.
 - `Selected Joint` and `Joint Editor`: inspect and edit one joint.
@@ -463,9 +463,11 @@ vertex instead of forcing a single rigid owner.
 
 ---
 
-# Interim Checkpoint
+# Reports
 
-Deadline: Friday 29 May 2026, 2pm.
+- Interim report and animation results: Friday 29 May 2026, 2pm.
+- Part 3 showcase: Tuesday 9 June 2026, 11am-1pm, LT6.
+- Final report and animation results: Friday 12 June 2026, 4pm.
 
 {{bullets: ../docs/interim.md#What To Submit}}
 
@@ -473,25 +475,27 @@ Deadline: Friday 29 May 2026, 2pm.
 
 ???
 Make this feel practical. The report is not separate from the coding work:
-screenshots, videos, and comparisons should be collected while they debug.
+screenshots, videos, and comparisons should be collected while they debug. The
+final report follows the same evidence-first spirit, but Part 3 adds the group
+animation result.
 
 ---
 
-# Parts 3 And 4
+# Part 3
 
-Work in groups of two to create a coherent 30-second animated human-avatar
-scene.
+Work in groups of two to create a coherent 30-second (or longer) animated
+human-avatar scene.
 
 - explore human motion sequences using a human body model
 - understand how SMPL-compatible motions can drive a skinned character
-- connect a reconstructed character mesh to the same 24-joint body skeleton
+- connect a reconstructed character mesh to the same SMPL-24 body skeleton
 - choose, combine, and refine motion clips for a short scene
-- produce a 30-second final animation video
+- produce a final 30-second (or longer) animation video
 - explain the strengths and limitations of your character-animation pipeline
 
 ???
-This slide can be shortened verbally if Part 3 has not been released to
-students yet. The purpose is to show why the FK and skinning work matters.
+The purpose is to show why the FK and skinning work matters: the group project
+uses the same ideas, just with human avatars, motion clips, and scene editing.
 
 ---
 
@@ -504,8 +508,8 @@ students yet. The purpose is to show why the FK and skinning work matters.
 - saved `.scene.json` files
 
 ???
-Use this only as a teaser if the session is mainly for Parts 1 and 2. The
-public Part 3 tooling and brief will be introduced later.
+Use this as a quick bridge from the individual coding work into the group
+animation workflow.
 
 ---
 
@@ -528,14 +532,14 @@ the working rhythm you want them to adopt.
 # AI Use Policy
 
 - Parts 1 and 2: no AI-generated code, math derivations, or results.
-- Parts 3 and 4: AI tools may support creative/production work.
+- Part 3: AI tools may support creative/production work.
 - Final focus: a realistic, controllable 3D avatar rendering scene.
 - Reports: no wholesale AI-written content; grammar help is allowed.
 - Every report needs an `AI Use Statement`.
 
 ???
 Use the distinction: no AI-generated code/results for Parts 1 and 2; more
-freedom in Parts 3 and 4 for production/creative tools; reports must not be
+freedom in Part 3 for production/creative tools; reports must not be
 wholesale AI-generated and must include declarations.
 
 ---
@@ -546,6 +550,8 @@ wholesale AI-generated and must include declarations.
 - [Part 1](part1.html)
 - [Part 2](part2.html)
 - [Interim report](interim.html)
+- [Part 3](part3.html)
+- [Final report](final_report.html)
 - [FAQ](faq.html)
 - [References](references.html)
 - [Project repository](https://github.com/CambridgeCVCourses/IIA-Project-GF5)

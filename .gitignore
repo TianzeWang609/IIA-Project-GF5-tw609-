@@ -20,8 +20,11 @@ env/
 exports/
 .viewer_imports/
 
-# User-created pose and motion libraries
-libraries/
+# User-created Part 3 libraries
+libraries/avatars/*
+libraries/motions/custom/
+libraries/poses/
+libraries/scenes/
 
 # Local SMPL model downloads
 smpl/
@@ -38,5 +41,5 @@ staff_tools/
 # Local generated site preview
 site/
 
-# Local intro slide notes
+# Local slide notes
 slides/student_notes/

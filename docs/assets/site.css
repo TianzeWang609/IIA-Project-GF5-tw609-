@@ -131,12 +131,7 @@ a:focus {
 }
 
 .nav-dropdown::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 100%;
-  width: max(100%, 13rem);
-  height: 0.45rem;
+  display: none;
 }
 
 .nav-dropdown-trigger {
@@ -156,7 +151,7 @@ a:focus {
 .nav-dropdown-menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 0.18rem);
+  top: 100%;
   z-index: 30;
   min-width: 13rem;
   padding: 0.35rem;
@@ -174,7 +169,6 @@ a:focus {
   visibility: hidden;
 }
 
-.nav-dropdown:hover .nav-dropdown-menu,
 .nav-dropdown:focus-within .nav-dropdown-menu,
 .nav-dropdown.is-open .nav-dropdown-menu {
   opacity: 1;
@@ -183,7 +177,6 @@ a:focus {
   visibility: visible;
 }
 
-.nav-dropdown:hover .nav-dropdown-trigger::after,
 .nav-dropdown:focus-within .nav-dropdown-trigger::after,
 .nav-dropdown.is-open .nav-dropdown-trigger::after {
   transform: translateY(0.1rem) rotate(225deg);
@@ -232,7 +225,7 @@ a:focus {
 }
 
 .doc-hero h1 {
-  max-width: 18ch;
+  max-width: none;
 }
 
 .doc-shell {
@@ -431,12 +424,18 @@ h3 {
 
 .release-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.85rem;
+  width: 100%;
   margin: 1rem 0 2.6rem;
 }
 
+.doc-content > .release-strip:first-child {
+  margin-top: 0;
+}
+
 .metric {
+  width: 100%;
   min-height: 7rem;
   padding: 1rem;
   border-left: 5px solid var(--teal);
@@ -697,7 +696,8 @@ h3 {
   box-shadow: var(--shadow);
 }
 
-.doc-media-frame iframe {
+.doc-media-frame iframe,
+.doc-media-frame video {
   position: absolute;
   inset: 0;
   width: 100%;
